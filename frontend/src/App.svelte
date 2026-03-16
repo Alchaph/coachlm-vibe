@@ -1,6 +1,7 @@
 <script lang="ts">
   import { SendMessage, SaveInsight, IsFirstRun } from '../wailsjs/go/main/App.js'
   import { afterUpdate, onMount } from 'svelte'
+  import { marked } from 'marked'
   import Dashboard from './Dashboard.svelte'
   import Settings from './Settings.svelte'
   import Context from './Context.svelte'
@@ -98,34 +99,26 @@
     setTimeout(() => { const f = { ...pinFeedback }; delete f[index]; pinFeedback = f }, 2000)
   }
 
+  const renderer = {
+    link({ href, title, tokens }: { href: string, title?: string | null, tokens: any[] }) {
+      const text = (this as any).parser.parseInline(tokens)
+      let out = `<a href="${href}" target="_blank" rel="noopener noreferrer"`
+      if (title) {
+        out += ` title="${title}"`
+      }
+      out += `>${text}</a>`
+      return out
+    }
+  }
+
+  marked.use({
+    renderer,
+    breaks: true,
+    gfm: true
+  })
+
   function renderMarkdown(text: string): string {
-    let html = text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
-      return `<pre><code>${code.replace(/\n$/, '')}</code></pre>`
-    })
-
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
-
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
-
-    html = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>')
-    html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
-
-    html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-
-    html = html.replace(/\n\n/g, '</p><p>')
-    html = `<p>${html}</p>`
-    html = html.replace(/<p>\s*<\/p>/g, '')
-
-    html = html.replace(/(?<!<\/li>)\n(?!<)/g, '<br>')
-
-    return html
+    return marked.parse(text) as string
   }
 </script>
 
@@ -531,6 +524,103 @@
 
   .message-bubble .markdown :global(strong) {
     font-weight: 700;
+  }
+
+  .message-bubble .markdown :global(em) {
+    font-style: italic;
+  }
+
+  .message-bubble .markdown :global(h1),
+  .message-bubble .markdown :global(h2),
+  .message-bubble .markdown :global(h3),
+  .message-bubble .markdown :global(h4) {
+    margin: 12px 0 6px;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  .message-bubble .markdown :global(h1) { font-size: 1.4em; }
+  .message-bubble .markdown :global(h2) { font-size: 1.25em; }
+  .message-bubble .markdown :global(h3) { font-size: 1.1em; }
+  .message-bubble .markdown :global(h4) { font-size: 1em; }
+
+  .message-bubble .markdown :global(h1:first-child),
+  .message-bubble .markdown :global(h2:first-child),
+  .message-bubble .markdown :global(h3:first-child),
+  .message-bubble .markdown :global(h4:first-child) {
+    margin-top: 0;
+  }
+
+  .message-bubble .markdown :global(a) {
+    color: #3b82f6;
+    text-decoration: none;
+  }
+
+  .message-bubble .markdown :global(a:hover) {
+    text-decoration: underline;
+  }
+
+  .message-bubble .markdown :global(blockquote) {
+    border-left: 3px solid #3b82f6;
+    margin: 8px 0;
+    padding: 4px 12px;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .message-bubble .markdown :global(blockquote p) {
+    margin: 4px 0;
+  }
+
+  .message-bubble .markdown :global(ol) {
+    margin: 4px 0;
+    padding-left: 20px;
+  }
+
+  .message-bubble .markdown :global(hr) {
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    margin: 12px 0;
+  }
+
+  .message-bubble .markdown :global(del) {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .message-bubble .markdown :global(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    font-size: 0.9em;
+  }
+
+  .message-bubble .markdown :global(th),
+  .message-bubble .markdown :global(td) {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 6px 10px;
+    text-align: left;
+  }
+
+  .message-bubble .markdown :global(th) {
+    background: rgba(255, 255, 255, 0.08);
+    font-weight: 700;
+  }
+
+  .message-bubble .markdown :global(tr:nth-child(even)) {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .message-bubble .markdown :global(img) {
+    max-width: 100%;
+    border-radius: 6px;
+    margin: 8px 0;
+  }
+
+  .message-bubble .markdown :global(input[type="checkbox"]) {
+    margin-right: 6px;
+    pointer-events: none;
   }
 
   .loading-bubble {
