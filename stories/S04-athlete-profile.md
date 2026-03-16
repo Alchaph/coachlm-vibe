@@ -1,7 +1,7 @@
 ---
 id: S04
 title: Athlete profile setup
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -43,6 +43,8 @@ Auto-detection from activities, profile UI form (S16), LLM-suggested changes
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Agent started implementation |
+| 2026-03-16 | done | Implemented profile.go + profile_test.go, all tests pass |
 
 ---
 
