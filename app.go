@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -13,6 +16,9 @@ import (
 	"coachlm/internal/fit"
 	"coachlm/internal/llm"
 	"coachlm/internal/storage"
+	"coachlm/internal/strava"
+
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
@@ -20,6 +26,16 @@ type App struct {
 	db        *storage.DB
 	llmClient llm.LLM
 	sessionID string
+}
+
+// SettingsData is the frontend-friendly representation of settings.
+type SettingsData struct {
+	ClaudeAPIKey       string `json:"claudeApiKey"`
+	OpenAIAPIKey       string `json:"openaiApiKey"`
+	ActiveLLM          string `json:"activeLlm"`
+	OllamaEndpoint     string `json:"ollamaEndpoint"`
+	StravaClientID     string `json:"stravaClientId"`
+	StravaClientSecret string `json:"stravaClientSecret"`
 }
 
 func NewApp(db *storage.DB, llmClient llm.LLM) *App {
@@ -128,6 +144,160 @@ func (a *App) GetRecentActivities(limit int) ([]ActivityRecord, error) {
 		})
 	}
 	return records, nil
+}
+
+func (a *App) GetSettingsData() (*SettingsData, error) {
+	s, err := a.db.GetSettings()
+	if err != nil {
+		return nil, fmt.Errorf("get settings: %w", err)
+	}
+	if s == nil {
+		return nil, nil
+	}
+	return &SettingsData{
+		ClaudeAPIKey:       string(s.ClaudeAPIKey),
+		OpenAIAPIKey:       string(s.OpenAIAPIKey),
+		ActiveLLM:          s.ActiveLLM,
+		OllamaEndpoint:     s.OllamaEndpoint,
+		StravaClientID:     string(s.StravaClientID),
+		StravaClientSecret: string(s.StravaClientSecret),
+	}, nil
+}
+
+func (a *App) SaveSettingsData(data SettingsData) error {
+	s := &storage.Settings{
+		ClaudeAPIKey:       []byte(data.ClaudeAPIKey),
+		OpenAIAPIKey:       []byte(data.OpenAIAPIKey),
+		ActiveLLM:          data.ActiveLLM,
+		OllamaEndpoint:     data.OllamaEndpoint,
+		StravaClientID:     []byte(data.StravaClientID),
+		StravaClientSecret: []byte(data.StravaClientSecret),
+	}
+	if err := a.db.SaveSettings(s); err != nil {
+		return fmt.Errorf("save settings: %w", err)
+	}
+	if err := a.reloadLLMClient(); err != nil {
+		return fmt.Errorf("reload LLM after save: %w", err)
+	}
+	return nil
+}
+
+func (a *App) IsFirstRun() (bool, error) {
+	s, err := a.db.GetSettings()
+	if err != nil {
+		return false, fmt.Errorf("check first run: %w", err)
+	}
+	return s == nil, nil
+}
+
+func (a *App) GetStravaAuthStatus() (map[string]interface{}, error) {
+	accessToken, _, _, err := a.db.GetTokens()
+	if err != nil {
+		return nil, fmt.Errorf("get strava auth status: %w", err)
+	}
+	return map[string]interface{}{
+		"connected": accessToken != nil,
+	}, nil
+}
+
+func (a *App) StartStravaAuth() error {
+	s, err := a.db.GetSettings()
+	if err != nil {
+		return fmt.Errorf("get settings for strava auth: %w", err)
+	}
+	if s == nil {
+		return errors.New("no settings configured; save settings first")
+	}
+
+	clientID := string(s.StravaClientID)
+	clientSecret := string(s.StravaClientSecret)
+	if clientID == "" || clientSecret == "" {
+		return errors.New("strava client ID and secret must be configured in settings")
+	}
+
+	encKey := sha256.Sum256([]byte("coachlm-encryption-key"))
+	oauthClient := strava.NewOAuthClient(clientID, clientSecret, "http://localhost:9876/callback", encKey[:])
+
+	authURL := oauthClient.AuthURL()
+
+	resultCh := make(chan error, 1)
+
+	mux := http.NewServeMux()
+	server := &http.Server{Handler: mux}
+
+	listener, err := net.Listen("tcp", ":9876")
+	if err != nil {
+		return fmt.Errorf("start callback server: %w", err)
+	}
+
+	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			http.Error(w, "missing authorization code", http.StatusBadRequest)
+			resultCh <- errors.New("no authorization code received from Strava")
+			return
+		}
+
+		tokens, exchangeErr := oauthClient.Exchange(r.Context(), code)
+		if exchangeErr != nil {
+			http.Error(w, "token exchange failed", http.StatusInternalServerError)
+			resultCh <- fmt.Errorf("exchange auth code: %w", exchangeErr)
+			return
+		}
+
+		encAccess, encErr := oauthClient.EncryptToken(tokens.AccessToken)
+		if encErr != nil {
+			resultCh <- fmt.Errorf("encrypt access token: %w", encErr)
+			return
+		}
+		encRefresh, encErr := oauthClient.EncryptToken(tokens.RefreshToken)
+		if encErr != nil {
+			resultCh <- fmt.Errorf("encrypt refresh token: %w", encErr)
+			return
+		}
+
+		if saveErr := a.db.SaveTokens(encAccess, encRefresh, tokens.ExpiresAt); saveErr != nil {
+			resultCh <- fmt.Errorf("save tokens: %w", saveErr)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, "<html><body><h2>Authorization successful!</h2><p>You can close this tab.</p></body></html>")
+		resultCh <- nil
+	})
+
+	go func() {
+		if serveErr := server.Serve(listener); serveErr != nil && serveErr != http.ErrServerClosed {
+			resultCh <- fmt.Errorf("callback server: %w", serveErr)
+		}
+	}()
+
+	wailsRuntime.BrowserOpenURL(a.ctx, authURL)
+
+	select {
+	case authErr := <-resultCh:
+		_ = server.Close()
+		return authErr
+	case <-time.After(2 * time.Minute):
+		_ = server.Close()
+		return errors.New("strava authorization timed out after 2 minutes")
+	}
+}
+
+func (a *App) DisconnectStrava() error {
+	if err := a.db.DeleteTokens(); err != nil {
+		return fmt.Errorf("disconnect strava: %w", err)
+	}
+	return nil
+}
+
+func (a *App) reloadLLMClient() error {
+	client, err := createLLMClient(a.db)
+	if err != nil {
+		return fmt.Errorf("reload LLM client: %w", err)
+	}
+	a.llmClient = client
+	return nil
 }
 
 func (a *App) ImportFITFile(filePath string) error {
