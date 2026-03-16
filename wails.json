@@ -5,5 +5,11 @@
   "frontend:install": "npm install",
   "frontend:build": "npm run build",
   "frontend:dev:watcher": "npm run dev",
-  "frontend:dev:serverUrl": "auto"
+  "frontend:dev:serverUrl": "auto",
+  "info": {
+    "productName": "CoachLM",
+    "productVersion": "1.0.0",
+    "copyright": "Copyright © 2026",
+    "comments": "AI-powered running coach desktop app"
+  }
 }

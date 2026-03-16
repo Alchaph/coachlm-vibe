@@ -28,6 +28,22 @@ type App struct {
 	sessionID string
 }
 
+type ProfileData struct {
+	Age                 int     `json:"age"`
+	MaxHR               int     `json:"maxHR"`
+	ThresholdPaceSecs   int     `json:"thresholdPaceSecs"`
+	WeeklyMileageTarget float64 `json:"weeklyMileageTarget"`
+	RaceGoals           string  `json:"raceGoals"`
+	InjuryHistory       string  `json:"injuryHistory"`
+}
+
+type InsightData struct {
+	ID              int64  `json:"id"`
+	Content         string `json:"content"`
+	SourceSessionID string `json:"sourceSessionId"`
+	CreatedAt       string `json:"createdAt"`
+}
+
 // SettingsData is the frontend-friendly representation of settings.
 type SettingsData struct {
 	ClaudeAPIKey       string `json:"claudeApiKey"`
@@ -297,6 +313,153 @@ func (a *App) DisconnectStrava() error {
 	if err := a.db.DeleteTokens(); err != nil {
 		return fmt.Errorf("disconnect strava: %w", err)
 	}
+	return nil
+}
+
+func (a *App) GetProfileData() (*ProfileData, error) {
+	p, err := a.db.GetProfile()
+	if err != nil {
+		return nil, fmt.Errorf("get profile: %w", err)
+	}
+	if p == nil {
+		return nil, nil
+	}
+	return &ProfileData{
+		Age:                 p.Age,
+		MaxHR:               p.MaxHR,
+		ThresholdPaceSecs:   p.ThresholdPaceSecs,
+		WeeklyMileageTarget: p.WeeklyMileageTarget,
+		RaceGoals:           p.RaceGoals,
+		InjuryHistory:       p.InjuryHistory,
+	}, nil
+}
+
+func (a *App) SaveProfileData(data ProfileData) error {
+	p := &storage.AthleteProfile{
+		Age:                 data.Age,
+		MaxHR:               data.MaxHR,
+		ThresholdPaceSecs:   data.ThresholdPaceSecs,
+		WeeklyMileageTarget: data.WeeklyMileageTarget,
+		RaceGoals:           data.RaceGoals,
+		InjuryHistory:       data.InjuryHistory,
+	}
+	if err := a.db.SaveProfile(p); err != nil {
+		return fmt.Errorf("save profile: %w", err)
+	}
+	return nil
+}
+
+func (a *App) GetPinnedInsights() ([]InsightData, error) {
+	insights, err := a.db.GetInsights()
+	if err != nil {
+		return nil, fmt.Errorf("get insights: %w", err)
+	}
+	result := make([]InsightData, 0, len(insights))
+	for _, i := range insights {
+		result = append(result, InsightData{
+			ID:              i.ID,
+			Content:         i.Content,
+			SourceSessionID: i.SourceSessionID,
+			CreatedAt:       i.CreatedAt.Format(time.RFC3339),
+		})
+	}
+	return result, nil
+}
+
+func (a *App) DeletePinnedInsight(id int64) error {
+	if err := a.db.DeleteInsight(id); err != nil {
+		return fmt.Errorf("delete insight: %w", err)
+	}
+	return nil
+}
+
+func (a *App) SyncStravaActivities() error {
+	s, err := a.db.GetSettings()
+	if err != nil {
+		return fmt.Errorf("get settings: %w", err)
+	}
+	if s == nil {
+		return errors.New("no settings configured")
+	}
+
+	accessTokenEnc, refreshTokenEnc, expiresAt, err := a.db.GetTokens()
+	if err != nil {
+		return fmt.Errorf("get tokens: %w", err)
+	}
+	if accessTokenEnc == nil {
+		return errors.New("strava not connected")
+	}
+
+	encKey := sha256.Sum256([]byte("coachlm-encryption-key"))
+	oauthClient := strava.NewOAuthClient(
+		string(s.StravaClientID), string(s.StravaClientSecret),
+		"http://localhost:9876/callback", encKey[:],
+	)
+
+	accessToken, err := oauthClient.DecryptToken(accessTokenEnc)
+	if err != nil {
+		return fmt.Errorf("decrypt access token: %w", err)
+	}
+
+	if oauthClient.IsExpired(expiresAt) {
+		refreshToken, err := oauthClient.DecryptToken(refreshTokenEnc)
+		if err != nil {
+			return fmt.Errorf("decrypt refresh token: %w", err)
+		}
+		tokens, err := oauthClient.Refresh(a.ctx, refreshToken)
+		if err != nil {
+			return fmt.Errorf("refresh token: %w", err)
+		}
+		encAccess, err := oauthClient.EncryptToken(tokens.AccessToken)
+		if err != nil {
+			return fmt.Errorf("encrypt new access token: %w", err)
+		}
+		encRefresh, err := oauthClient.EncryptToken(tokens.RefreshToken)
+		if err != nil {
+			return fmt.Errorf("encrypt new refresh token: %w", err)
+		}
+		if err := a.db.SaveTokens(encAccess, encRefresh, tokens.ExpiresAt); err != nil {
+			return fmt.Errorf("save refreshed tokens: %w", err)
+		}
+		accessToken = tokens.AccessToken
+	}
+
+	wailsRuntime.EventsEmit(a.ctx, "strava:sync:start", nil)
+
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+	activities, err := strava.FetchAthleteActivities(a.ctx, httpClient, "https://www.strava.com/api/v3", accessToken)
+	if err != nil {
+		wailsRuntime.EventsEmit(a.ctx, "strava:sync:error", err.Error())
+		return fmt.Errorf("fetch activities: %w", err)
+	}
+
+	total := len(activities)
+	saved := 0
+	for i, act := range activities {
+		wailsRuntime.EventsEmit(a.ctx, "strava:sync:progress", map[string]int{
+			"current": i + 1,
+			"total":   total,
+		})
+
+		existing, err := a.db.GetActivityByStravaID(act.StravaID)
+		if err != nil {
+			continue
+		}
+		if existing != nil {
+			continue
+		}
+
+		if err := a.db.SaveActivity(act); err != nil {
+			continue
+		}
+		saved++
+	}
+
+	wailsRuntime.EventsEmit(a.ctx, "strava:sync:complete", map[string]int{
+		"total": total,
+		"saved": saved,
+	})
+
 	return nil
 }
 
