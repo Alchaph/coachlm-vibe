@@ -1,7 +1,7 @@
 ---
 id: S09
 title: LLM router interface and Claude implementation
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -52,6 +52,8 @@ Claude implementation uses the Anthropic Messages API endpoint.
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Agent started implementation |
+| 2026-03-16 | done | Interface + Claude impl + 14 tests passing |
 
 ---
 
