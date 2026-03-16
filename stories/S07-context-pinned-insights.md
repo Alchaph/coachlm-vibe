@@ -1,7 +1,7 @@
 ---
 id: S07
 title: Context engine — pinned insights
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -43,6 +43,8 @@ Auto-detection from chat, categorization, search, insight editing
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Agent implementing CRUD storage layer |
+| 2026-03-16 | done | Storage CRUD implemented, 9 tests passing |
 
 ---
 
