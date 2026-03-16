@@ -1,7 +1,7 @@
 ---
 id: S02
 title: Strava webhook receiver
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -49,6 +49,7 @@ Activity data parsing (S03), webhook subscription creation, UI notifications
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | done | Webhook handler + activity storage implemented, all tests passing |
 
 ---
 
