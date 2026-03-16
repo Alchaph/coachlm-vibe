@@ -13,6 +13,9 @@ type Settings struct {
 	OllamaEndpoint     string
 	StravaClientID     []byte
 	StravaClientSecret []byte
+	ClaudeModel        string
+	OpenAIModel        string
+	OllamaModel        string
 }
 
 var validLLMs = map[string]bool{
@@ -41,15 +44,18 @@ func (db *DB) SaveSettings(s *Settings) error {
 
 	_, err := db.conn.Exec(`
 		INSERT OR REPLACE INTO settings
-			(id, claude_api_key, openai_api_key, active_llm, ollama_endpoint, strava_client_id, strava_client_secret, created_at, updated_at)
+			(id, claude_api_key, openai_api_key, active_llm, ollama_endpoint, strava_client_id, strava_client_secret, claude_model, openai_model, ollama_model, created_at, updated_at)
 		VALUES
-			(1, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM settings WHERE id = 1), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)`,
+			(1, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM settings WHERE id = 1), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)`,
 		s.ClaudeAPIKey,
 		s.OpenAIAPIKey,
 		s.ActiveLLM,
 		s.OllamaEndpoint,
 		s.StravaClientID,
 		s.StravaClientSecret,
+		s.ClaudeModel,
+		s.OpenAIModel,
+		s.OllamaModel,
 	)
 	if err != nil {
 		return fmt.Errorf("save settings: %w", err)
@@ -63,7 +69,7 @@ func (db *DB) GetSettings() (*Settings, error) {
 
 	s := &Settings{}
 	err := db.conn.QueryRow(`
-		SELECT claude_api_key, openai_api_key, active_llm, ollama_endpoint, strava_client_id, strava_client_secret
+		SELECT claude_api_key, openai_api_key, active_llm, ollama_endpoint, strava_client_id, strava_client_secret, claude_model, openai_model, ollama_model
 		FROM settings
 		WHERE id = 1`).Scan(
 		&s.ClaudeAPIKey,
@@ -72,6 +78,9 @@ func (db *DB) GetSettings() (*Settings, error) {
 		&s.OllamaEndpoint,
 		&s.StravaClientID,
 		&s.StravaClientSecret,
+		&s.ClaudeModel,
+		&s.OpenAIModel,
+		&s.OllamaModel,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil

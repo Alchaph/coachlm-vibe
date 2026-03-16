@@ -196,3 +196,67 @@ func TestSaveAndGetSettings_StravaCredentials(t *testing.T) {
 		t.Errorf("StravaClientSecret = %q, want %q", got.StravaClientSecret, want.StravaClientSecret)
 	}
 }
+
+func TestSaveAndGetSettings_ModelFields(t *testing.T) {
+	db := newTestDB(t)
+
+	want := &Settings{
+		ClaudeAPIKey:   []byte("claude-key"),
+		OpenAIAPIKey:   []byte("openai-key"),
+		ActiveLLM:      "claude",
+		OllamaEndpoint: "http://localhost:11434",
+		ClaudeModel:    "claude-opus-4-20250514",
+		OpenAIModel:    "gpt-4o-mini",
+		OllamaModel:    "llama3.1",
+	}
+
+	if err := db.SaveSettings(want); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+
+	got, err := db.GetSettings()
+	if err != nil {
+		t.Fatalf("GetSettings: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected non-nil settings")
+	}
+
+	if got.ClaudeModel != want.ClaudeModel {
+		t.Errorf("ClaudeModel = %q, want %q", got.ClaudeModel, want.ClaudeModel)
+	}
+	if got.OpenAIModel != want.OpenAIModel {
+		t.Errorf("OpenAIModel = %q, want %q", got.OpenAIModel, want.OpenAIModel)
+	}
+	if got.OllamaModel != want.OllamaModel {
+		t.Errorf("OllamaModel = %q, want %q", got.OllamaModel, want.OllamaModel)
+	}
+}
+
+func TestSaveAndGetSettings_EmptyModelFieldsDefaultToEmpty(t *testing.T) {
+	db := newTestDB(t)
+
+	want := &Settings{
+		ActiveLLM:      "local",
+		OllamaEndpoint: "http://localhost:11434",
+	}
+
+	if err := db.SaveSettings(want); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+
+	got, err := db.GetSettings()
+	if err != nil {
+		t.Fatalf("GetSettings: %v", err)
+	}
+
+	if got.ClaudeModel != "" {
+		t.Errorf("ClaudeModel = %q, want empty", got.ClaudeModel)
+	}
+	if got.OpenAIModel != "" {
+		t.Errorf("OpenAIModel = %q, want empty", got.OpenAIModel)
+	}
+	if got.OllamaModel != "" {
+		t.Errorf("OllamaModel = %q, want empty", got.OllamaModel)
+	}
+}

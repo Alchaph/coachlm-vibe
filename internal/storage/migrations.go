@@ -85,6 +85,10 @@ var migrations = []string{
 
 	`ALTER TABLE settings ADD COLUMN strava_client_id BLOB`,
 	`ALTER TABLE settings ADD COLUMN strava_client_secret BLOB`,
+
+	`ALTER TABLE settings ADD COLUMN claude_model TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE settings ADD COLUMN openai_model TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE settings ADD COLUMN ollama_model TEXT NOT NULL DEFAULT ''`,
 }
 
 func (db *DB) migrate() error {
