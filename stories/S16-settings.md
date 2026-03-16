@@ -1,7 +1,7 @@
 ---
 id: S16
 title: Settings screen
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -49,6 +49,7 @@ Themes, notifications, data export, account deletion, usage stats
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | done | Settings storage layer implemented and tested |
 
 ---
 
