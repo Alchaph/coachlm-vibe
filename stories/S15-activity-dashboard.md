@@ -1,7 +1,7 @@
 ---
 id: S15
 title: Activity dashboard
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -48,6 +48,8 @@ Detail view, charting/graphs, comparison, training load, route maps
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Implementation started |
+| 2026-03-16 | done | Dashboard + tab nav implemented, builds pass |
 
 ---
 

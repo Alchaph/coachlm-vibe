@@ -1,6 +1,10 @@
 <script lang="ts">
-  import { SendMessage } from '../wailsjs/go/main/App.js'
+  import { SendMessage, SaveInsight } from '../wailsjs/go/main/App.js'
   import { afterUpdate } from 'svelte'
+  import Dashboard from './Dashboard.svelte'
+
+  type Tab = 'chat' | 'dashboard'
+  let activeTab: Tab = 'chat'
 
   interface ChatMessage {
     role: 'user' | 'assistant'
@@ -13,6 +17,8 @@
   let error = ''
   let errorTimer: ReturnType<typeof setTimeout> | null = null
   let chatContainer: HTMLElement
+  let pinnedIndices: Set<number> = new Set()
+  let pinFeedback: Record<number, string> = {}
 
   $: canSend = input.trim().length > 0 && !loading
 
@@ -53,108 +59,192 @@
     }
   }
 
+  async function pinInsight(index: number, content: string) {
+    if (pinnedIndices.has(index)) {
+      pinFeedback = { ...pinFeedback, [index]: 'Already pinned' }
+      setTimeout(() => { const f = { ...pinFeedback }; delete f[index]; pinFeedback = f }, 2000)
+      return
+    }
+    try {
+      await SaveInsight(content)
+      pinnedIndices.add(index)
+      pinnedIndices = pinnedIndices
+      pinFeedback = { ...pinFeedback, [index]: 'Insight saved!' }
+    } catch (e: any) {
+      const msg = e?.message || String(e) || 'Failed to save'
+      if (msg.toLowerCase().includes('already')) {
+        pinnedIndices.add(index)
+        pinnedIndices = pinnedIndices
+        pinFeedback = { ...pinFeedback, [index]: 'Already pinned' }
+      } else {
+        pinFeedback = { ...pinFeedback, [index]: 'Save failed' }
+      }
+    }
+    setTimeout(() => { const f = { ...pinFeedback }; delete f[index]; pinFeedback = f }, 2000)
+  }
+
   function renderMarkdown(text: string): string {
     let html = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
 
-    // Code blocks (``` ... ```)
     html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_m, _lang, code) => {
       return `<pre><code>${code.replace(/\n$/, '')}</code></pre>`
     })
 
-    // Inline code
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
 
-    // Bold
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 
-    // Italic
     html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
 
-    // Unordered lists
     html = html.replace(/^[-*] (.+)$/gm, '<li>$1</li>')
     html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul>$1</ul>')
 
-    // Ordered lists
     html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
 
-    // Paragraphs (double newline)
     html = html.replace(/\n\n/g, '</p><p>')
     html = `<p>${html}</p>`
     html = html.replace(/<p>\s*<\/p>/g, '')
 
-    // Single newlines to <br> (but not inside pre/code)
     html = html.replace(/(?<!<\/li>)\n(?!<)/g, '<br>')
 
     return html
   }
 </script>
 
-<main class="chat-app">
-  {#if error}
-    <div class="error-banner" role="alert" on:click={() => error = ''} on:keydown={(e) => e.key === 'Enter' && (error = '')}>
-      {error}
+<main class="app-shell">
+  <nav class="tab-bar">
+    <button
+      class="tab"
+      class:active={activeTab === 'chat'}
+      on:click={() => activeTab = 'chat'}
+    >Chat</button>
+    <button
+      class="tab"
+      class:active={activeTab === 'dashboard'}
+      on:click={() => activeTab = 'dashboard'}
+    >Dashboard</button>
+  </nav>
+
+  {#if activeTab === 'chat'}
+    <div class="chat-app">
+      {#if error}
+        <div class="error-banner" role="alert" on:click={() => error = ''} on:keydown={(e) => e.key === 'Enter' && (error = '')}>
+          {error}
+        </div>
+      {/if}
+
+      <div class="chat-messages" bind:this={chatContainer}>
+        {#if messages.length === 0 && !loading}
+          <div class="empty-state">
+            <div class="empty-icon">🏃</div>
+            <h2>CoachLM</h2>
+            <p>Your AI running coach. Ask me anything about training, recovery, or race preparation.</p>
+          </div>
+        {/if}
+
+        {#each messages as msg, i}
+          <div class="message {msg.role}">
+            <div class="message-bubble">
+              {#if msg.role === 'assistant'}
+                <div class="markdown">{@html renderMarkdown(msg.content)}</div>
+                <div class="pin-row">
+                  {#if pinFeedback[i]}
+                    <span class="pin-feedback">{pinFeedback[i]}</span>
+                  {/if}
+                  <button
+                    class="pin-btn"
+                    class:pinned={pinnedIndices.has(i)}
+                    on:click={() => pinInsight(i, msg.content)}
+                    aria-label="Pin insight"
+                    title={pinnedIndices.has(i) ? 'Already pinned' : 'Save as insight'}
+                  >📌</button>
+                </div>
+              {:else}
+                <div class="text">{msg.content}</div>
+              {/if}
+            </div>
+          </div>
+        {/each}
+
+        {#if loading}
+          <div class="message assistant">
+            <div class="message-bubble loading-bubble">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+            </div>
+          </div>
+        {/if}
+      </div>
+
+      <div class="input-area">
+        <textarea
+          bind:value={input}
+          on:keydown={handleKeydown}
+          placeholder="Ask your coach..."
+          rows="1"
+          disabled={loading}
+        ></textarea>
+        <button on:click={send} disabled={!canSend} class="send-btn" aria-label="Send message">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13"></path>
+            <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+          </svg>
+        </button>
+      </div>
     </div>
+  {:else}
+    <Dashboard />
   {/if}
-
-  <div class="chat-messages" bind:this={chatContainer}>
-    {#if messages.length === 0 && !loading}
-      <div class="empty-state">
-        <div class="empty-icon">🏃</div>
-        <h2>CoachLM</h2>
-        <p>Your AI running coach. Ask me anything about training, recovery, or race preparation.</p>
-      </div>
-    {/if}
-
-    {#each messages as msg}
-      <div class="message {msg.role}">
-        <div class="message-bubble">
-          {#if msg.role === 'assistant'}
-            <div class="markdown">{@html renderMarkdown(msg.content)}</div>
-          {:else}
-            <div class="text">{msg.content}</div>
-          {/if}
-        </div>
-      </div>
-    {/each}
-
-    {#if loading}
-      <div class="message assistant">
-        <div class="message-bubble loading-bubble">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-        </div>
-      </div>
-    {/if}
-  </div>
-
-  <div class="input-area">
-    <textarea
-      bind:value={input}
-      on:keydown={handleKeydown}
-      placeholder="Ask your coach..."
-      rows="1"
-      disabled={loading}
-    ></textarea>
-    <button on:click={send} disabled={!canSend} class="send-btn" aria-label="Send message">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M22 2L11 13"></path>
-        <path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
-      </svg>
-    </button>
-  </div>
 </main>
 
 <style>
-  .chat-app {
+  .app-shell {
     display: flex;
     flex-direction: column;
     height: 100vh;
     max-width: 800px;
     margin: 0 auto;
+    position: relative;
+  }
+
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(27, 38, 54, 0.95);
+    flex-shrink: 0;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 10px 16px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .tab:hover {
+    color: #e2e8f0;
+  }
+
+  .tab.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+  }
+
+  .chat-app {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
     position: relative;
   }
 
@@ -250,6 +340,48 @@
     background: rgba(255, 255, 255, 0.1);
     color: #e2e8f0;
     border-bottom-left-radius: 4px;
+  }
+
+  .pin-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 4px;
+    min-height: 24px;
+  }
+
+  .pin-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8rem;
+    padding: 2px 4px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    line-height: 1;
+  }
+
+  .message-bubble:hover .pin-btn,
+  .pin-btn.pinned {
+    opacity: 0.7;
+  }
+
+  .pin-btn:hover {
+    opacity: 1 !important;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .pin-btn.pinned {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  .pin-feedback {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    animation: slideDown 0.3s ease;
   }
 
   .message-bubble .text {

@@ -1,7 +1,7 @@
 ---
 id: S14
 title: Save insight from chat
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -46,6 +46,8 @@ Auto-detection, editing after save, batch saving, categorization
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Started implementation |
+| 2026-03-16 | done | Wails binding stub + pin button in chat UI |
 
 ---
 
