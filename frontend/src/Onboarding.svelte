@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { SaveSettingsData, StartStravaAuth, GetOllamaModels } from '../wailsjs/go/main/App.js'
+  import { SaveSettingsData, StartStravaAuth, GetOllamaModels, SaveProfileData, SyncStravaActivities, GetProfileData, GetPinnedInsights, GetRecentActivities } from '../wailsjs/go/main/App.js'
 
   const dispatch = createEventDispatcher()
 
@@ -24,6 +24,21 @@
   let fetchingModels = false
   let modelFetchError = ''
 
+  // Profile fields (step 4)
+  let profileAge = 0
+  let profileMaxHR = 0
+  let profileThresholdMins = 0
+  let profileThresholdSecs = 0
+  let profileWeeklyMileage = 0
+  let profileRaceGoals = ''
+  let profileInjuryHistory = ''
+  let savingProfile = false
+
+  // Context readiness (step 5)
+  let hasProfile = false
+  let hasTrainingData = false
+  let hasInsights = false
+
   async function fetchOllamaModels() {
     fetchingModels = true
     modelFetchError = ''
@@ -41,7 +56,7 @@
   }
 
   function next() {
-    if (step < 4) step++
+    if (step < 5) step++
   }
 
   function back() {
@@ -66,12 +81,47 @@
       })
       await StartStravaAuth()
       stravaConnected = true
+      SyncStravaActivities().catch(() => {})
       next()
     } catch (e: any) {
       error = e?.message || 'Failed to connect Strava'
     } finally {
       connectingStrava = false
     }
+  }
+
+  async function saveProfile() {
+    savingProfile = true
+    error = ''
+    try {
+      const totalSecs = (profileThresholdMins * 60) + profileThresholdSecs
+      await SaveProfileData({
+        age: profileAge,
+        maxHR: profileMaxHR,
+        thresholdPaceSecs: totalSecs,
+        weeklyMileageTarget: profileWeeklyMileage,
+        raceGoals: profileRaceGoals,
+        injuryHistory: profileInjuryHistory
+      })
+      hasProfile = profileAge > 0 || profileMaxHR > 0 || totalSecs > 0 || profileWeeklyMileage > 0 || profileRaceGoals !== '' || profileInjuryHistory !== ''
+    } catch (e: any) {
+      error = e?.message || 'Failed to save profile'
+    } finally {
+      savingProfile = false
+    }
+  }
+
+  async function checkContextReadiness() {
+    try {
+      const [profile, insights, activities] = await Promise.all([
+        GetProfileData().catch(() => null),
+        GetPinnedInsights().catch(() => []),
+        GetRecentActivities(1).catch(() => [])
+      ])
+      hasProfile = !!(profile && (profile.age > 0 || profile.maxHR > 0 || profile.thresholdPaceSecs > 0 || profile.weeklyMileageTarget > 0 || profile.raceGoals || profile.injuryHistory))
+      hasTrainingData = (activities || []).length > 0
+      hasInsights = (insights || []).length > 0
+    } catch (_) {}
   }
 
   async function finish() {
@@ -101,7 +151,7 @@
 <div class="overlay">
   <div class="wizard">
     <div class="progress">
-      {#each [1, 2, 3, 4] as s}
+      {#each [1, 2, 3, 4, 5] as s}
         <div class="dot" class:active={s === step} class:done={s < step}></div>
       {/each}
     </div>
@@ -230,11 +280,75 @@
 
     {#if step === 4}
       <div class="step">
+        <h1>Athlete Profile</h1>
+        <p class="subtitle">Help your coach understand you. All fields are optional — you can update them later.</p>
+
+        <div class="profile-form">
+          <div class="form-row">
+            <div class="field">
+              <label class="field-label">Age</label>
+              <input type="number" bind:value={profileAge} placeholder="30" min="1" max="120" />
+            </div>
+            <div class="field">
+              <label class="field-label">Max Heart Rate</label>
+              <input type="number" bind:value={profileMaxHR} placeholder="185" min="100" max="220" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label class="field-label">Threshold Pace (/km)</label>
+              <div class="pace-input">
+                <input type="number" bind:value={profileThresholdMins} placeholder="5" min="0" max="15" />
+                <span class="pace-sep">:</span>
+                <input type="number" bind:value={profileThresholdSecs} placeholder="00" min="0" max="59" />
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label">Weekly Mileage Target (km)</label>
+              <input type="number" bind:value={profileWeeklyMileage} placeholder="50" step="0.1" min="0" />
+            </div>
+          </div>
+          <div class="field">
+            <label class="field-label">Race Goals</label>
+            <textarea bind:value={profileRaceGoals} placeholder="e.g. Sub-3:30 marathon in October" rows="2"></textarea>
+          </div>
+          <div class="field">
+            <label class="field-label">Injury History</label>
+            <textarea bind:value={profileInjuryHistory} placeholder="e.g. IT band issues in 2024, fully recovered" rows="2"></textarea>
+          </div>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-secondary" on:click={back}>Back</button>
+          <button class="btn btn-secondary" on:click={() => { checkContextReadiness(); next() }}>Skip</button>
+          <button class="btn btn-primary" on:click={async () => { await saveProfile(); checkContextReadiness(); next() }} disabled={savingProfile}>
+            {savingProfile ? 'Saving...' : 'Next'}
+          </button>
+        </div>
+      </div>
+    {/if}
+
+    {#if step === 5}
+      <div class="step">
         <h1>You're All Set!</h1>
         <p class="subtitle">Start chatting with your AI running coach.</p>
         {#if stravaConnected}
           <p class="connected-note">Strava connected successfully.</p>
         {/if}
+        <div class="context-readiness">
+          <div class="readiness-item" class:ready={hasProfile}>
+            <span class="readiness-icon">{hasProfile ? '\u2713' : '\u2717'}</span>
+            <span>Athlete profile</span>
+          </div>
+          <div class="readiness-item" class:ready={hasTrainingData}>
+            <span class="readiness-icon">{hasTrainingData ? '\u2713' : '\u2717'}</span>
+            <span>Training data</span>
+          </div>
+          <div class="readiness-item" class:ready={hasInsights}>
+            <span class="readiness-icon">{hasInsights ? '\u2713' : '\u2717'}</span>
+            <span>Pinned insights</span>
+          </div>
+        </div>
         <div class="actions">
           <button class="btn btn-primary" on:click={finish} disabled={saving}>
             {saving ? 'Saving...' : 'Start Chatting'}
@@ -476,5 +590,107 @@
     background: rgba(59, 130, 246, 0.2);
     border-color: #3b82f6;
     color: #3b82f6;
+  }
+
+  .profile-form {
+    text-align: left;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+  }
+
+  .profile-form .field {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .profile-form input[type="number"],
+  .profile-form textarea {
+    width: 100%;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    color: white;
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+
+  .profile-form input:focus,
+  .profile-form textarea:focus {
+    border-color: #3b82f6;
+  }
+
+  .profile-form textarea {
+    resize: vertical;
+    min-height: 60px;
+  }
+
+  .profile-form textarea::placeholder,
+  .profile-form input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .pace-input {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .pace-input input {
+    flex: 1;
+    text-align: center;
+  }
+
+  .pace-sep {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  .context-readiness {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 20px auto 24px;
+    padding: 16px 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    width: fit-content;
+  }
+
+  .readiness-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9rem;
+    color: #94a3b8;
+  }
+
+  .readiness-item.ready {
+    color: #e2e8f0;
+  }
+
+  .readiness-icon {
+    font-size: 1rem;
+    width: 18px;
+    text-align: center;
+    color: #f87171;
+  }
+
+  .readiness-item.ready .readiness-icon {
+    color: #22c55e;
   }
 </style>
