@@ -1,7 +1,7 @@
 ---
 id: S05
 title: Context engine — profile block assembly
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -43,6 +43,7 @@ Training summary (S06), pinned insights (S07), full assembly (S08), token counti
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | done | Implemented FormatProfileBlock + tests |
 
 ---
 
