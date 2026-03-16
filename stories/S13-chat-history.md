@@ -1,7 +1,7 @@
 ---
 id: S13
 title: Chat history persistence
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -46,6 +46,7 @@ Session search/filtering, export, reactions, sharing
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | done | Storage layer implemented with full CRUD + 20 tests passing |
 
 ---
 
