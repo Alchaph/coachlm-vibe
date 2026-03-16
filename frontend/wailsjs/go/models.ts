@@ -24,7 +24,6 @@ export namespace main {
 	        this.avgHR = source["avgHR"];
 	    }
 	}
-
 	export class SettingsData {
 	    claudeApiKey: string;
 	    openaiApiKey: string;
@@ -32,6 +31,9 @@ export namespace main {
 	    ollamaEndpoint: string;
 	    stravaClientId: string;
 	    stravaClientSecret: string;
+	    claudeModel: string;
+	    openaiModel: string;
+	    ollamaModel: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new SettingsData(source);
@@ -45,7 +47,11 @@ export namespace main {
 	        this.ollamaEndpoint = source["ollamaEndpoint"];
 	        this.stravaClientId = source["stravaClientId"];
 	        this.stravaClientSecret = source["stravaClientSecret"];
+	        this.claudeModel = source["claudeModel"];
+	        this.openaiModel = source["openaiModel"];
+	        this.ollamaModel = source["ollamaModel"];
 	    }
 	}
 
 }
+

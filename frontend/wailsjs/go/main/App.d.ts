@@ -8,7 +8,7 @@ export function GetRecentActivities(arg1:number):Promise<Array<main.ActivityReco
 
 export function GetSettingsData():Promise<main.SettingsData>;
 
-export function GetStravaAuthStatus():Promise<{[key: string]: any}>;
+export function GetStravaAuthStatus():Promise<Record<string, any>>;
 
 export function ImportFITFile(arg1:string):Promise<void>;
 
