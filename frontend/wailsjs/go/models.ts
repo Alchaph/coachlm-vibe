@@ -25,5 +25,27 @@ export namespace main {
 	    }
 	}
 
-}
+	export class SettingsData {
+	    claudeApiKey: string;
+	    openaiApiKey: string;
+	    activeLlm: string;
+	    ollamaEndpoint: string;
+	    stravaClientId: string;
+	    stravaClientSecret: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SettingsData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.claudeApiKey = source["claudeApiKey"];
+	        this.openaiApiKey = source["openaiApiKey"];
+	        this.activeLlm = source["activeLlm"];
+	        this.ollamaEndpoint = source["ollamaEndpoint"];
+	        this.stravaClientId = source["stravaClientId"];
+	        this.stravaClientSecret = source["stravaClientSecret"];
+	    }
+	}
 
+}
