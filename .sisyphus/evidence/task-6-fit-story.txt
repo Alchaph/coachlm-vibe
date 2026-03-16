@@ -1,0 +1,5 @@
+=== Task 6: FIT File Import Story (S17) ===
+S17-fit-file-import.md: EXISTS, valid frontmatter, 7 sections
+References same activities and activity_streams tables as S03
+Deduplication strategy defined (hash-based)
+Optional feature noted

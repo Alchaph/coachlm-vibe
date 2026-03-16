@@ -1,0 +1,4 @@
+=== Task 1: Setup ===
+stories/ directory created: YES
+_template.md moved to stories/_template.md: YES
+Verified: ls stories/_template.md exists

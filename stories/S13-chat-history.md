@@ -1,0 +1,52 @@
+---
+id: S13
+title: Chat history persistence
+status: draft
+created: 2026-03-16
+updated: 2026-03-16
+---
+
+# S13 — Chat history persistence
+
+## User story
+
+As a **runner**,
+I want **my chat conversations saved**
+so that **I can review previous coaching sessions**.
+
+## Acceptance criteria
+
+- [ ] Messages persisted to SQLite per session
+- [ ] Sessions identified by unique ID + timestamp
+- [ ] Previous sessions loadable from history
+- [ ] New session created on app launch or explicit action
+- [ ] Session list displayed with timestamps
+- [ ] Empty state when no previous sessions exist
+
+## Technical notes
+
+Lives in `internal/storage/` for persistence, binding in `app.go`. 
+Tables: `chat_sessions` (id, created_at) and `chat_messages` (id, session_id, role, content, created_at). 
+Depends on S12 for chat UI.
+
+## Tests required
+
+- Unit: message CRUD, session creation, session listing
+- Integration: chat → save → reload
+- Edge cases: 1000+ messages, concurrent writes, empty session, corrupted content
+
+## Out of scope
+
+Session search/filtering, export, reactions, sharing
+
+---
+
+## Status history
+
+| Date | Status | Notes |
+|---|---|---|
+| 2026-03-16 | draft | Created |
+
+---
+
+<!-- Agent: add a Blocker section here if status is set to failed -->

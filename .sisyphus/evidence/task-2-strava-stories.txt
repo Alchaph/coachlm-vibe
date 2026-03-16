@@ -1,0 +1,5 @@
+=== Task 2: Strava Stories (S01-S03) ===
+S01-strava-oauth.md: EXISTS, valid frontmatter, 7 sections
+S02-activity-sync.md: EXISTS, valid frontmatter, 7 sections
+S03-activity-streams.md: EXISTS, valid frontmatter, 7 sections
+All constraints from AGENTS.md encoded (encrypted tokens, 2s webhook, async fetch, dedup)

@@ -1,0 +1,6 @@
+=== Structural Verification ===
+File count: 17
+All files present: S01 through S17
+All status: draft
+All 7 sections present in every file
+Blocker comment present in every file

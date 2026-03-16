@@ -1,0 +1,21 @@
+=== Summary Table ===
+
+| ID | Title | Status | Key Dependency |
+|---|---|---|---|
+| S01 | Strava OAuth2 login and token storage | draft | S02 |
+| S02 | Strava webhook receiver | draft | S01 |
+| S03 | Activity stream ingestion | draft | S17 |
+| S04 | Athlete profile setup | draft | S16 |
+| S05 | Context engine — profile block assembly | draft | S08 |
+| S06 | Context engine — rolling training summary | draft | S03 |
+| S07 | Context engine — pinned insights | draft | S08 |
+| S08 | Context engine — prompt assembler and token budget | draft | S07 |
+| S09 | LLM router interface and Claude implementation | draft | S10 |
+| S10 | LLM router — OpenAI implementation | draft | S09 |
+| S11 | LLM router — local LLM implementation | draft | S09 |
+| S12 | Chat UI | draft | S09 |
+| S13 | Chat history persistence | draft | S12 |
+| S14 | Save insight from chat | draft | S07 |
+| S15 | Activity dashboard | draft | S03 |
+| S16 | Settings screen | draft | S01 |
+| S17 | FIT file import | draft | S03 |

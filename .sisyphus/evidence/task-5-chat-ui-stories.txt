@@ -1,0 +1,7 @@
+=== Task 5: Chat + UI Stories (S12-S16) ===
+S12-chat-ui.md: EXISTS, valid frontmatter, 7 sections
+S13-chat-history.md: EXISTS, valid frontmatter, 7 sections
+S14-save-insight.md: EXISTS, valid frontmatter, 7 sections
+S15-activity-dashboard.md: EXISTS, valid frontmatter, 7 sections
+S16-settings.md: EXISTS, valid frontmatter, 7 sections
+All behavior-only specs, no design details

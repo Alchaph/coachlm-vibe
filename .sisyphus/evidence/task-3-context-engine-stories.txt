@@ -1,0 +1,7 @@
+=== Task 3: Context Engine Stories (S04-S08) ===
+S04-athlete-profile.md: EXISTS, valid frontmatter, 7 sections
+S05-context-profile-block.md: EXISTS, valid frontmatter, 7 sections
+S06-context-training-summary.md: EXISTS, valid frontmatter, 7 sections
+S07-context-pinned-insights.md: EXISTS, valid frontmatter, 7 sections
+S08-context-prompt-assembler.md: EXISTS, valid frontmatter, 7 sections
+Compression rules from AGENTS.md encoded (older first, pinned never dropped, token budget)

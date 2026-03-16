@@ -1,0 +1,6 @@
+=== Forbidden Patterns Scan ===
+Go code blocks (non-LLM stories): NONE
+Subjective language: NONE
+All acceptance criteria counts ≤8: YES
+All technical notes ≤15 lines: YES
+All Out of Scope non-empty: YES

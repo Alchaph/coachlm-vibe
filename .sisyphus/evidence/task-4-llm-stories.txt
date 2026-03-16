@@ -1,0 +1,5 @@
+=== Task 4: LLM Router Stories (S09-S11) ===
+S09-llm-router-claude.md: EXISTS, valid frontmatter, 7 sections, defines LLM interface
+S10-llm-router-openai.md: EXISTS, valid frontmatter, 7 sections, references S09 interface
+S11-llm-router-local.md: EXISTS, valid frontmatter, 7 sections, references S09 interface
+All three have exact LLM interface from AGENTS.md
