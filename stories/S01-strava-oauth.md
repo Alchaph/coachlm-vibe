@@ -1,7 +1,7 @@
 ---
 id: S01
 title: Strava OAuth2 login and token storage
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
