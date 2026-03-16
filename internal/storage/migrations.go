@@ -1,6 +1,9 @@
 package storage
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 var migrations = []string{
 	`CREATE TABLE IF NOT EXISTS athlete_profile (
@@ -79,11 +82,18 @@ var migrations = []string{
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	)`,
+
+	`ALTER TABLE settings ADD COLUMN strava_client_id BLOB`,
+	`ALTER TABLE settings ADD COLUMN strava_client_secret BLOB`,
 }
 
 func (db *DB) migrate() error {
 	for i, m := range migrations {
 		if _, err := db.conn.Exec(m); err != nil {
+			// ALTER TABLE ADD COLUMN fails harmlessly when column already exists.
+			if strings.HasPrefix(strings.TrimSpace(strings.ToUpper(m)), "ALTER") && strings.Contains(err.Error(), "duplicate column") {
+				continue
+			}
 			return fmt.Errorf("migration %d: %w", i, err)
 		}
 	}

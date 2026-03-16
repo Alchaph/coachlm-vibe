@@ -164,3 +164,35 @@ func TestSaveSettings_NilSettings(t *testing.T) {
 		t.Error("expected error for nil settings, got nil")
 	}
 }
+
+func TestSaveAndGetSettings_StravaCredentials(t *testing.T) {
+	db := newTestDB(t)
+
+	want := &Settings{
+		ClaudeAPIKey:       []byte("claude-key"),
+		OpenAIAPIKey:       []byte("openai-key"),
+		ActiveLLM:          "claude",
+		OllamaEndpoint:     "http://localhost:11434",
+		StravaClientID:     []byte("strava-client-id-123"),
+		StravaClientSecret: []byte("strava-secret-456"),
+	}
+
+	if err := db.SaveSettings(want); err != nil {
+		t.Fatalf("SaveSettings: %v", err)
+	}
+
+	got, err := db.GetSettings()
+	if err != nil {
+		t.Fatalf("GetSettings: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected non-nil settings")
+	}
+
+	if !bytes.Equal(got.StravaClientID, want.StravaClientID) {
+		t.Errorf("StravaClientID = %q, want %q", got.StravaClientID, want.StravaClientID)
+	}
+	if !bytes.Equal(got.StravaClientSecret, want.StravaClientSecret) {
+		t.Errorf("StravaClientSecret = %q, want %q", got.StravaClientSecret, want.StravaClientSecret)
+	}
+}
