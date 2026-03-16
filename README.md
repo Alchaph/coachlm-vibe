@@ -18,19 +18,34 @@ AI-powered running coach desktop app — syncs your Strava data, understands you
 - Node.js 20+
 - npm
 - Wails CLI v2: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+- **Linux**: `gtk3` and `webkit2gtk` (4.0 or 4.1)
 
 ## Quick Start
 
 ```bash
 git clone https://github.com/YOUR_USERNAME/coachlm.git
 cd coachlm
-wails dev
+make dev
+```
+
+Or without Make:
+
+```bash
+wails dev                    # if you have webkit2gtk-4.0
+wails dev -tags webkit2_41   # if you have webkit2gtk-4.1 (Arch, Fedora 39+)
 ```
 
 ## Build
 
 ```bash
-wails build -production
+make build
+```
+
+Or without Make:
+
+```bash
+wails build -production                    # webkit2gtk-4.0
+wails build -production -tags webkit2_41   # webkit2gtk-4.1
 ```
 
 Output binary location: `build/bin/`
