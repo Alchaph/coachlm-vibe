@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
   import {
     GetProfileData,
     SaveProfileData,
@@ -7,6 +7,7 @@
     DeletePinnedInsight,
     GetRecentActivities
   } from '../wailsjs/go/main/App.js'
+  import { EventsOn } from '../wailsjs/runtime/runtime.js'
 
   let age = 0
   let maxHR = 0
@@ -34,6 +35,7 @@
   let feedback = ''
   let feedbackType: 'success' | 'error' = 'success'
   let feedbackTimer: ReturnType<typeof setTimeout> | null = null
+  let unsubContextReady: (() => void) | null = null
 
   function showFeedback(msg: string, type: 'success' | 'error') {
     feedback = msg
@@ -67,6 +69,35 @@
     } finally {
       loading = false
     }
+
+    unsubContextReady = EventsOn("strava:sync:context-ready", async () => {
+      try {
+        const [profile, insightList, activityList] = await Promise.all([
+          GetProfileData(),
+          GetPinnedInsights(),
+          GetRecentActivities(10)
+        ])
+
+        if (profile) {
+          age = profile.age || 0
+          maxHR = profile.maxHR || 0
+          thresholdPaceSecs = profile.thresholdPaceSecs || 0
+          weeklyMileageTarget = profile.weeklyMileageTarget || 0
+          raceGoals = profile.raceGoals || ''
+          injuryHistory = profile.injuryHistory || ''
+          profileLoaded = true
+        }
+
+        insights = insightList || []
+        activities = activityList || []
+        showFeedback('Context updated after sync', 'success')
+      } catch (_) {}
+    })
+  })
+
+  onDestroy(() => {
+    if (unsubContextReady) unsubContextReady()
+    if (feedbackTimer) clearTimeout(feedbackTimer)
   })
 
   async function saveProfile() {

@@ -22,11 +22,13 @@
   let syncTotal = 0
   let syncResult = ''
   let syncResultTimer: ReturnType<typeof setTimeout> | null = null
+  let contextSummary = ''
 
   let unsubStart: (() => void) | null = null
   let unsubProgress: (() => void) | null = null
   let unsubComplete: (() => void) | null = null
   let unsubError: (() => void) | null = null
+  let unsubContextReady: (() => void) | null = null
 
   async function loadActivities() {
     activities = await GetRecentActivities(20)
@@ -73,6 +75,12 @@
       if (syncResultTimer) clearTimeout(syncResultTimer)
       syncResultTimer = setTimeout(() => { syncResult = '' }, 5000)
     })
+
+    unsubContextReady = EventsOn("strava:sync:context-ready", (preview: any) => {
+      if (typeof preview === 'string' && preview.length > 0) {
+        contextSummary = 'Coaching context updated'
+      }
+    })
   })
 
   onDestroy(() => {
@@ -80,6 +88,7 @@
     if (unsubProgress) unsubProgress()
     if (unsubComplete) unsubComplete()
     if (unsubError) unsubError()
+    if (unsubContextReady) unsubContextReady()
     if (syncResultTimer) clearTimeout(syncResultTimer)
   })
 
@@ -143,6 +152,9 @@
       {/if}
       {#if syncResult}
         <span class="sync-result">{syncResult}</span>
+      {/if}
+      {#if contextSummary}
+        <span class="context-summary">{contextSummary}</span>
       {/if}
     </div>
   {/if}
@@ -354,5 +366,10 @@
   .sync-result {
     font-size: 0.8rem;
     color: #94a3b8;
+  }
+
+  .context-summary {
+    font-size: 0.8rem;
+    color: #22c55e;
   }
 </style>
