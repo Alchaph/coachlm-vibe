@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 const (
@@ -145,4 +146,46 @@ func (l *Local) handleErrorResponse(statusCode int, body []byte) error {
 	default:
 		return fmt.Errorf("local: unexpected status %d: %s", statusCode, detail)
 	}
+}
+
+// ListOllamaModels queries the Ollama API at the given endpoint for installed models.
+// Returns a list of model name strings (e.g. "llama3:8b", "mistral:latest").
+func ListOllamaModels(ctx context.Context, endpoint string) ([]string, error) {
+	if endpoint == "" {
+		endpoint = defaultLocalEndpoint
+	}
+
+	url := endpoint + "/api/tags"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("list ollama models: create request: %w", err)
+	}
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("list ollama models: request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("list ollama models: unexpected status %d: %s", resp.StatusCode, string(body))
+	}
+
+	var tagsResp struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&tagsResp); err != nil {
+		return nil, fmt.Errorf("list ollama models: parse response: %w", err)
+	}
+
+	names := make([]string, 0, len(tagsResp.Models))
+	for _, m := range tagsResp.Models {
+		names = append(names, m.Name)
+	}
+
+	return names, nil
 }

@@ -271,3 +271,99 @@ func TestLocal_Chat_NoMessageInResponse(t *testing.T) {
 		t.Errorf("expected 'no message' in error, got %q", err.Error())
 	}
 }
+
+func TestListOllamaModels_Success(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Errorf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/api/tags" {
+			t.Errorf("expected path /api/tags, got %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"models":[{"name":"llama3:8b"},{"name":"mistral:latest"},{"name":"codellama:7b"}]}`))
+	}))
+	defer server.Close()
+
+	models, err := ListOllamaModels(context.Background(), server.URL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(models) != 3 {
+		t.Fatalf("expected 3 models, got %d", len(models))
+	}
+	want := []string{"llama3:8b", "mistral:latest", "codellama:7b"}
+	for i, m := range models {
+		if m != want[i] {
+			t.Errorf("model[%d]: expected %q, got %q", i, want[i], m)
+		}
+	}
+}
+
+func TestListOllamaModels_EmptyList(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"models":[]}`))
+	}))
+	defer server.Close()
+
+	models, err := ListOllamaModels(context.Background(), server.URL)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(models) != 0 {
+		t.Errorf("expected 0 models, got %d", len(models))
+	}
+}
+
+func TestListOllamaModels_DefaultEndpoint(t *testing.T) {
+	_, err := ListOllamaModels(context.Background(), "")
+	if err == nil {
+		t.Skip("Ollama is running locally; skipping connection error test")
+	}
+	if !strings.Contains(err.Error(), "request failed") {
+		t.Errorf("expected 'request failed' in error, got %q", err.Error())
+	}
+}
+
+func TestListOllamaModels_ServerError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("internal error"))
+	}))
+	defer server.Close()
+
+	_, err := ListOllamaModels(context.Background(), server.URL)
+	if err == nil {
+		t.Fatal("expected error for server error")
+	}
+	if !strings.Contains(err.Error(), "unexpected status 500") {
+		t.Errorf("expected 'unexpected status 500' in error, got %q", err.Error())
+	}
+}
+
+func TestListOllamaModels_MalformedResponse(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{not valid`))
+	}))
+	defer server.Close()
+
+	_, err := ListOllamaModels(context.Background(), server.URL)
+	if err == nil {
+		t.Fatal("expected error for malformed response")
+	}
+	if !strings.Contains(err.Error(), "parse response") {
+		t.Errorf("expected 'parse response' in error, got %q", err.Error())
+	}
+}
+
+func TestListOllamaModels_ConnectionRefused(t *testing.T) {
+	_, err := ListOllamaModels(context.Background(), "http://127.0.0.1:1")
+	if err == nil {
+		t.Fatal("expected error for connection refused")
+	}
+	if !strings.Contains(err.Error(), "request failed") {
+		t.Errorf("expected 'request failed' in error, got %q", err.Error())
+	}
+}
