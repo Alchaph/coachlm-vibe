@@ -1,7 +1,7 @@
 ---
 id: S10
 title: LLM router — OpenAI implementation
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
