@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { GetRecentActivities } from '../wailsjs/go/main/App.js'
+  import { onMount, onDestroy } from 'svelte'
+  import { GetRecentActivities, GetStravaAuthStatus, SyncStravaActivities } from '../wailsjs/go/main/App.js'
+  import { EventsOn } from '../wailsjs/runtime/runtime.js'
 
   interface Activity {
     name: string
@@ -15,16 +16,86 @@
   let activities: Activity[] = []
   let loading = true
   let error = ''
+  let stravaConnected = false
+  let syncing = false
+  let syncCurrent = 0
+  let syncTotal = 0
+  let syncResult = ''
+  let syncResultTimer: ReturnType<typeof setTimeout> | null = null
+
+  let unsubStart: (() => void) | null = null
+  let unsubProgress: (() => void) | null = null
+  let unsubComplete: (() => void) | null = null
+  let unsubError: (() => void) | null = null
+
+  async function loadActivities() {
+    activities = await GetRecentActivities(20)
+  }
 
   onMount(async () => {
     try {
-      activities = await GetRecentActivities(20)
+      const [, status] = await Promise.all([
+        loadActivities().catch(() => {}),
+        GetStravaAuthStatus().catch(() => null)
+      ])
+      if (status) stravaConnected = !!status.connected
     } catch (e: any) {
       error = e?.message || String(e) || 'Failed to load activities'
     } finally {
       loading = false
     }
+
+    unsubStart = EventsOn("strava:sync:start", () => {
+      syncing = true
+      syncCurrent = 0
+      syncTotal = 0
+      syncResult = ''
+    })
+
+    unsubProgress = EventsOn("strava:sync:progress", (data: any) => {
+      syncCurrent = data?.current || 0
+      syncTotal = data?.total || 0
+    })
+
+    unsubComplete = EventsOn("strava:sync:complete", async (data: any) => {
+      syncing = false
+      const saved = data?.saved || 0
+      const total = data?.total || 0
+      syncResult = saved > 0 ? `Synced ${saved} new activities (${total} total)` : `Up to date (${total} activities)`
+      if (syncResultTimer) clearTimeout(syncResultTimer)
+      syncResultTimer = setTimeout(() => { syncResult = '' }, 5000)
+      try { await loadActivities() } catch (_) {}
+    })
+
+    unsubError = EventsOn("strava:sync:error", (msg: any) => {
+      syncing = false
+      syncResult = `Sync failed: ${msg}`
+      if (syncResultTimer) clearTimeout(syncResultTimer)
+      syncResultTimer = setTimeout(() => { syncResult = '' }, 5000)
+    })
   })
+
+  onDestroy(() => {
+    if (unsubStart) unsubStart()
+    if (unsubProgress) unsubProgress()
+    if (unsubComplete) unsubComplete()
+    if (unsubError) unsubError()
+    if (syncResultTimer) clearTimeout(syncResultTimer)
+  })
+
+  async function startSync() {
+    if (syncing) return
+    syncing = true
+    syncResult = ''
+    try {
+      await SyncStravaActivities()
+    } catch (e: any) {
+      syncing = false
+      syncResult = `Sync failed: ${e?.message || String(e)}`
+      if (syncResultTimer) clearTimeout(syncResultTimer)
+      syncResultTimer = setTimeout(() => { syncResult = '' }, 5000)
+    }
+  }
 
   function formatDuration(secs: number): string {
     const h = Math.floor(secs / 3600)
@@ -54,6 +125,28 @@
 </script>
 
 <div class="dashboard">
+  {#if stravaConnected}
+    <div class="sync-bar">
+      <button class="btn btn-sync" on:click={startSync} disabled={syncing}>
+        {#if syncing && syncTotal > 0}
+          Syncing {syncCurrent}/{syncTotal}...
+        {:else if syncing}
+          Starting sync...
+        {:else}
+          Sync Activities
+        {/if}
+      </button>
+      {#if syncing && syncTotal > 0}
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: {Math.round((syncCurrent / syncTotal) * 100)}%"></div>
+        </div>
+      {/if}
+      {#if syncResult}
+        <span class="sync-result">{syncResult}</span>
+      {/if}
+    </div>
+  {/if}
+
   {#if loading}
     <div class="state-msg">
       <div class="spinner"></div>
@@ -206,6 +299,60 @@
   }
 
   td.type {
+    color: #94a3b8;
+  }
+
+  .sync-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    margin-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+  }
+
+  .btn.btn-sync {
+    padding: 8px 18px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+
+  .btn.btn-sync:hover:not(:disabled) {
+    background: #2563eb;
+  }
+
+  .btn.btn-sync:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .progress-bar {
+    flex: 1;
+    min-width: 120px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+  }
+
+  .sync-result {
+    font-size: 0.8rem;
     color: #94a3b8;
   }
 </style>

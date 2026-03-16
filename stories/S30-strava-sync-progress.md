@@ -1,7 +1,7 @@
 ---
 id: S30
 title: Manual Strava sync with progress indicator
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
