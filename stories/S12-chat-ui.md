@@ -1,7 +1,7 @@
 ---
 id: S12
 title: Chat UI
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -48,6 +48,8 @@ Voice input, file attachments, message editing/deletion, typing indicators, them
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Implementation started |
+| 2026-03-16 | done | Chat UI implemented with stub SendMessage binding |
 
 ---
 

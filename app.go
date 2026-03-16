@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"strings"
 )
 
 // App struct holds the application state and dependencies.
@@ -18,4 +21,14 @@ func NewApp() *App {
 // so we can call the Wails runtime methods.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+}
+
+// SendMessage sends a user message to the LLM backend and returns the response.
+// This is a stub that echoes the message until the LLM router (S08/S09) is wired up.
+func (a *App) SendMessage(message string) (string, error) {
+	trimmed := strings.TrimSpace(message)
+	if trimmed == "" {
+		return "", errors.New("message cannot be empty")
+	}
+	return fmt.Sprintf("Echo: %s", trimmed), nil
 }
