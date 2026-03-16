@@ -6,6 +6,8 @@ export function DeletePinnedInsight(arg1:number):Promise<void>;
 
 export function DisconnectStrava():Promise<void>;
 
+export function GetContextPreview():Promise<string>;
+
 export function GetOllamaModels(arg1:string):Promise<Array<string>>;
 
 export function GetPinnedInsights():Promise<Array<main.InsightData>>;

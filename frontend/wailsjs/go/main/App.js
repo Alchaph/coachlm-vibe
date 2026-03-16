@@ -10,6 +10,10 @@ export function DisconnectStrava() {
   return window['go']['main']['App']['DisconnectStrava']();
 }
 
+export function GetContextPreview() {
+  return window['go']['main']['App']['GetContextPreview']();
+}
+
 export function GetOllamaModels(arg1) {
   return window['go']['main']['App']['GetOllamaModels'](arg1);
 }
