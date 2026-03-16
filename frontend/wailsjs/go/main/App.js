@@ -6,6 +6,10 @@ export function DisconnectStrava() {
   return window['go']['main']['App']['DisconnectStrava']();
 }
 
+export function GetOllamaModels(arg1) {
+  return window['go']['main']['App']['GetOllamaModels'](arg1);
+}
+
 export function GetRecentActivities(arg1) {
   return window['go']['main']['App']['GetRecentActivities'](arg1);
 }

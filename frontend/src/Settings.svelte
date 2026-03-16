@@ -5,7 +5,8 @@
     SaveSettingsData,
     GetStravaAuthStatus,
     StartStravaAuth,
-    DisconnectStrava
+    DisconnectStrava,
+    GetOllamaModels
   } from '../wailsjs/go/main/App.js'
 
   let activeLlm = 'local'
@@ -29,6 +30,26 @@
   let showClaudeKey = false
   let showOpenaiKey = false
   let showStravaSecret = false
+
+  let ollamaModels: string[] = []
+  let fetchingModels = false
+  let modelFetchError = ''
+
+  async function fetchOllamaModels() {
+    fetchingModels = true
+    modelFetchError = ''
+    ollamaModels = []
+    try {
+      ollamaModels = await GetOllamaModels(ollamaEndpoint) || []
+      if (ollamaModels.length === 0) {
+        modelFetchError = 'No models installed. Run: ollama pull llama3'
+      }
+    } catch (e: any) {
+      modelFetchError = e?.message || 'Cannot reach Ollama'
+    } finally {
+      fetchingModels = false
+    }
+  }
 
   function showFeedback(msg: string, type: 'success' | 'error') {
     feedback = msg
@@ -184,7 +205,28 @@
         <label class="field-label">Ollama Endpoint</label>
         <input type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
         <label class="field-label">Model</label>
-        <input type="text" bind:value={ollamaModel} placeholder="llama3" />
+        <div class="input-row">
+          <input type="text" bind:value={ollamaModel} placeholder="llama3" />
+          <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
+            {fetchingModels ? '...' : 'Fetch'}
+          </button>
+        </div>
+        {#if modelFetchError}
+          <p class="model-fetch-error">{modelFetchError}</p>
+        {/if}
+        {#if ollamaModels.length > 0}
+          <div class="model-chips">
+            {#each ollamaModels as model}
+              <button
+                class="model-chip"
+                class:selected={ollamaModel === model}
+                on:click={() => ollamaModel = model}
+              >
+                {model}
+              </button>
+            {/each}
+          </div>
+        {/if}
       {/if}
     </section>
 
@@ -445,5 +487,41 @@
   .save-btn {
     width: 100%;
     padding: 12px;
+  }
+
+  .model-fetch-error {
+    color: #f87171;
+    font-size: 0.8rem;
+    margin: 6px 0 0;
+  }
+
+  .model-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .model-chip {
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .model-chip:hover {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .model-chip.selected {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #3b82f6;
+    color: #3b82f6;
   }
 </style>

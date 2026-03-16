@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function DisconnectStrava():Promise<void>;
 
+export function GetOllamaModels(arg1:string):Promise<Array<string>>;
+
 export function GetRecentActivities(arg1:number):Promise<Array<main.ActivityRecord>>;
 
 export function GetSettingsData():Promise<main.SettingsData>;

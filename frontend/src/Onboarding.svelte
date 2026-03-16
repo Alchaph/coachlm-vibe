@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { SaveSettingsData, StartStravaAuth } from '../wailsjs/go/main/App.js'
+  import { SaveSettingsData, StartStravaAuth, GetOllamaModels } from '../wailsjs/go/main/App.js'
 
   const dispatch = createEventDispatcher()
 
@@ -20,6 +20,25 @@
   let error = ''
 
   let showApiKey = false
+  let ollamaModels: string[] = []
+  let fetchingModels = false
+  let modelFetchError = ''
+
+  async function fetchOllamaModels() {
+    fetchingModels = true
+    modelFetchError = ''
+    ollamaModels = []
+    try {
+      ollamaModels = await GetOllamaModels(ollamaEndpoint) || []
+      if (ollamaModels.length === 0) {
+        modelFetchError = 'No models installed. Run: ollama pull llama3'
+      }
+    } catch (e: any) {
+      modelFetchError = e?.message || 'Cannot reach Ollama'
+    } finally {
+      fetchingModels = false
+    }
+  }
 
   function next() {
     if (step < 4) step++
@@ -150,7 +169,28 @@
             <label class="field-label">Ollama Endpoint</label>
             <input type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
             <label class="field-label">Model</label>
-            <input type="text" bind:value={ollamaModel} placeholder="llama3" />
+            <div class="input-row">
+              <input type="text" bind:value={ollamaModel} placeholder="llama3" />
+              <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
+                {fetchingModels ? '...' : 'Fetch'}
+              </button>
+            </div>
+            {#if modelFetchError}
+              <p class="model-fetch-error">{modelFetchError}</p>
+            {/if}
+            {#if ollamaModels.length > 0}
+              <div class="model-chips">
+                {#each ollamaModels as model}
+                  <button
+                    class="model-chip"
+                    class:selected={ollamaModel === model}
+                    on:click={() => ollamaModel = model}
+                  >
+                    {model}
+                  </button>
+                {/each}
+              </div>
+            {/if}
           {/if}
         </div>
 
@@ -400,5 +440,41 @@
   .btn-secondary:hover:not(:disabled) {
     color: #e2e8f0;
     background: rgba(255, 255, 255, 0.12);
+  }
+
+  .model-fetch-error {
+    color: #f87171;
+    font-size: 0.8rem;
+    margin: 6px 0 0;
+  }
+
+  .model-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .model-chip {
+    padding: 6px 14px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .model-chip:hover {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .model-chip.selected {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: #3b82f6;
+    color: #3b82f6;
   }
 </style>
