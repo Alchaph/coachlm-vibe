@@ -1,7 +1,7 @@
 ---
 id: S06
 title: Context engine — rolling training summary
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -16,12 +16,12 @@ so that **coaching advice reflects current fitness and training load**.
 
 ## Acceptance criteria
 
-- [ ] Summarize last 4 weeks of activities from SQLite
-- [ ] CRITICAL: Older training summaries must be compressed before recent ones (AGENTS.md constraint)
+- [x] Summarize last 4 weeks of activities from SQLite
+- [x] CRITICAL: Older training summaries must be compressed before recent ones (AGENTS.md constraint)
 - [ ] Auto-update summary when new activities arrive
 - [ ] Output fits within allocated portion of configurable token budget
-- [ ] Compression levels defined: Week 1 (most recent) = per-run detail, Week 4 = weekly totals only
-- [ ] Handle partial weeks correctly
+- [x] Compression levels defined: Week 1 (most recent) = per-run detail, Week 4 = weekly totals only
+- [x] Handle partial weeks correctly
 
 ## Technical notes
 
@@ -44,6 +44,8 @@ Real-time updates, history beyond 4 weeks, LLM-based summarization
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Implementation started |
+| 2026-03-16 | done | Implemented and all tests passing |
 
 ---
 
