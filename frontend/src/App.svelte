@@ -1,10 +1,15 @@
 <script lang="ts">
-  import { SendMessage, SaveInsight } from '../wailsjs/go/main/App.js'
-  import { afterUpdate } from 'svelte'
+  import { SendMessage, SaveInsight, IsFirstRun } from '../wailsjs/go/main/App.js'
+  import { afterUpdate, onMount } from 'svelte'
   import Dashboard from './Dashboard.svelte'
+  import Settings from './Settings.svelte'
+  import Onboarding from './Onboarding.svelte'
 
-  type Tab = 'chat' | 'dashboard'
+  type Tab = 'chat' | 'dashboard' | 'settings'
   let activeTab: Tab = 'chat'
+
+  let showOnboarding = false
+  let onboardingChecked = false
 
   interface ChatMessage {
     role: 'user' | 'assistant'
@@ -21,6 +26,15 @@
   let pinFeedback: Record<number, string> = {}
 
   $: canSend = input.trim().length > 0 && !loading
+
+  onMount(async () => {
+    try {
+      showOnboarding = await IsFirstRun()
+    } catch (e) {
+      showOnboarding = false
+    }
+    onboardingChecked = true
+  })
 
   afterUpdate(() => {
     if (chatContainer) {
@@ -126,6 +140,11 @@
       class:active={activeTab === 'dashboard'}
       on:click={() => activeTab = 'dashboard'}
     >Dashboard</button>
+    <button
+      class="tab"
+      class:active={activeTab === 'settings'}
+      on:click={() => activeTab = 'settings'}
+    >Settings</button>
   </nav>
 
   {#if activeTab === 'chat'}
@@ -196,10 +215,16 @@
         </button>
       </div>
     </div>
-  {:else}
+  {:else if activeTab === 'dashboard'}
     <Dashboard />
+  {:else if activeTab === 'settings'}
+    <Settings />
   {/if}
 </main>
+
+{#if onboardingChecked && showOnboarding}
+  <Onboarding on:complete={() => { showOnboarding = false; activeTab = 'chat' }} />
+{/if}
 
 <style>
   .app-shell {
