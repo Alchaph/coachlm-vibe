@@ -14,6 +14,9 @@
   let ollamaEndpoint = 'http://localhost:11434'
   let stravaClientId = ''
   let stravaClientSecret = ''
+  let claudeModel = ''
+  let openaiModel = ''
+  let ollamaModel = ''
 
   let stravaConnected = false
   let loading = true
@@ -48,6 +51,9 @@
         ollamaEndpoint = settings.ollamaEndpoint || 'http://localhost:11434'
         stravaClientId = settings.stravaClientId || ''
         stravaClientSecret = settings.stravaClientSecret || ''
+        claudeModel = settings.claudeModel || ''
+        openaiModel = settings.openaiModel || ''
+        ollamaModel = settings.ollamaModel || ''
       }
 
       if (status) {
@@ -69,7 +75,10 @@
         activeLlm,
         ollamaEndpoint,
         stravaClientId,
-        stravaClientSecret
+        stravaClientSecret,
+        claudeModel,
+        openaiModel,
+        ollamaModel
       })
       showFeedback('Settings saved!', 'success')
     } catch (e: any) {
@@ -88,7 +97,10 @@
         activeLlm,
         ollamaEndpoint,
         stravaClientId,
-        stravaClientSecret
+        stravaClientSecret,
+        claudeModel,
+        openaiModel,
+        ollamaModel
       })
       await StartStravaAuth()
       const status = await GetStravaAuthStatus()
@@ -148,6 +160,8 @@
             {showClaudeKey ? 'Hide' : 'Show'}
           </button>
         </div>
+        <label class="field-label">Model</label>
+        <input type="text" bind:value={claudeModel} placeholder="claude-sonnet-4-20250514" />
       {/if}
 
       {#if activeLlm === 'openai'}
@@ -162,11 +176,15 @@
             {showOpenaiKey ? 'Hide' : 'Show'}
           </button>
         </div>
+        <label class="field-label">Model</label>
+        <input type="text" bind:value={openaiModel} placeholder="gpt-4o" />
       {/if}
 
       {#if activeLlm === 'local'}
         <label class="field-label">Ollama Endpoint</label>
         <input type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
+        <label class="field-label">Model</label>
+        <input type="text" bind:value={ollamaModel} placeholder="llama3" />
       {/if}
     </section>
 

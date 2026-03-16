@@ -11,6 +11,9 @@
   let ollamaEndpoint = 'http://localhost:11434'
   let stravaClientId = ''
   let stravaClientSecret = ''
+  let claudeModel = ''
+  let openaiModel = ''
+  let ollamaModel = ''
   let connectingStrava = false
   let stravaConnected = false
   let saving = false
@@ -37,7 +40,10 @@
         activeLlm,
         ollamaEndpoint,
         stravaClientId,
-        stravaClientSecret
+        stravaClientSecret,
+        claudeModel,
+        openaiModel,
+        ollamaModel
       })
       await StartStravaAuth()
       stravaConnected = true
@@ -59,7 +65,10 @@
         activeLlm,
         ollamaEndpoint,
         stravaClientId,
-        stravaClientSecret
+        stravaClientSecret,
+        claudeModel,
+        openaiModel,
+        ollamaModel
       })
       dispatch('complete')
     } catch (e: any) {
@@ -117,6 +126,8 @@
                 {showApiKey ? 'Hide' : 'Show'}
               </button>
             </div>
+            <label class="field-label">Model</label>
+            <input type="text" bind:value={claudeModel} placeholder="claude-sonnet-4-20250514" />
           {/if}
 
           {#if activeLlm === 'openai'}
@@ -131,11 +142,15 @@
                 {showApiKey ? 'Hide' : 'Show'}
               </button>
             </div>
+            <label class="field-label">Model</label>
+            <input type="text" bind:value={openaiModel} placeholder="gpt-4o" />
           {/if}
 
           {#if activeLlm === 'local'}
             <label class="field-label">Ollama Endpoint</label>
             <input type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
+            <label class="field-label">Model</label>
+            <input type="text" bind:value={ollamaModel} placeholder="llama3" />
           {/if}
         </div>
 
