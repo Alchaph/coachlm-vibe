@@ -1,7 +1,7 @@
 ---
 id: S17
 title: FIT file import
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -53,6 +53,8 @@ The parsing logic should map FIT messages to the internal activity representatio
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Implementation started |
+| 2026-03-16 | done | Parser, tests, and app.go stub implemented. 21 tests passing. |
 
 ---
 
