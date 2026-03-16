@@ -300,6 +300,13 @@ func (a *App) DisconnectStrava() error {
 	return nil
 }
 
+func (a *App) GetOllamaModels(endpoint string) ([]string, error) {
+	if endpoint == "" {
+		endpoint = "http://localhost:11434"
+	}
+	return llm.ListOllamaModels(a.ctx, endpoint)
+}
+
 func (a *App) reloadLLMClient() error {
 	client, err := createLLMClient(a.db)
 	if err != nil {
