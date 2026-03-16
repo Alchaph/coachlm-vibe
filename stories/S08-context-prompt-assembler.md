@@ -1,7 +1,7 @@
 ---
 id: S08
 title: Context engine — prompt assembler and token budget
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -44,6 +44,8 @@ LLM-specific tokenizers, prompt engineering (template content), streaming update
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Implementation started |
+| 2026-03-16 | done | Assembler implemented with token budget enforcement, all tests passing |
 
 ---
 
