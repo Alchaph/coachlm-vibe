@@ -1,7 +1,7 @@
 ---
 id: S03
 title: Activity stream ingestion
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -48,6 +48,8 @@ Activity analysis/statistics, dashboard display (S15), FIT parsing (S17)
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-16 | in-progress | Implementation started |
+| 2026-03-16 | done | Implemented and all tests passing |
 
 ---
 
