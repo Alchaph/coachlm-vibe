@@ -1,7 +1,7 @@
 ---
 id: S31
 title: Context at hand — profile in onboarding + auto-rebuild after sync
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
