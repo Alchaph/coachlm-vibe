@@ -373,6 +373,21 @@ func (a *App) DeletePinnedInsight(id int64) error {
 	return nil
 }
 
+func (a *App) GetContextPreview() (string, error) {
+	profile, _ := a.db.GetProfile()
+	activities, _ := a.db.ListActivities(28, 0)
+	insights, _ := a.db.GetInsights()
+
+	prompt := coachctx.AssemblePrompt(coachctx.PromptInput{
+		Profile:    profile,
+		Activities: activities,
+		Insights:   insights,
+		Now:        time.Now(),
+	}, coachctx.DefaultPromptConfig())
+
+	return prompt, nil
+}
+
 func (a *App) SyncStravaActivities() error {
 	s, err := a.db.GetSettings()
 	if err != nil {
@@ -459,6 +474,10 @@ func (a *App) SyncStravaActivities() error {
 		"total": total,
 		"saved": saved,
 	})
+
+	if preview, err := a.GetContextPreview(); err == nil {
+		wailsRuntime.EventsEmit(a.ctx, "strava:sync:context-ready", preview)
+	}
 
 	return nil
 }

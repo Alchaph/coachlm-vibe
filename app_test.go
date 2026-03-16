@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -204,5 +205,62 @@ func TestReloadLLMClient(t *testing.T) {
 	}
 	if app.llmClient.Name() != "local" {
 		t.Errorf("expected llmClient.Name()=local, got %q", app.llmClient.Name())
+	}
+}
+
+func TestGetContextPreview_Empty(t *testing.T) {
+	app := newTestApp(t)
+
+	preview, err := app.GetContextPreview()
+	if err != nil {
+		t.Fatalf("GetContextPreview: %v", err)
+	}
+	if preview == "" {
+		t.Error("expected non-empty preview even with no data")
+	}
+	if !strings.Contains(preview, "CoachLM") {
+		t.Error("expected preview to contain 'CoachLM' preamble")
+	}
+}
+
+func TestGetContextPreview_WithProfile(t *testing.T) {
+	app := newTestApp(t)
+
+	if err := app.SaveProfileData(ProfileData{
+		Age:                 30,
+		MaxHR:               185,
+		ThresholdPaceSecs:   300,
+		WeeklyMileageTarget: 50,
+		RaceGoals:           "Sub-3:30 marathon",
+		InjuryHistory:       "None",
+	}); err != nil {
+		t.Fatalf("SaveProfileData: %v", err)
+	}
+
+	preview, err := app.GetContextPreview()
+	if err != nil {
+		t.Fatalf("GetContextPreview: %v", err)
+	}
+	if !strings.Contains(preview, "30") {
+		t.Error("expected preview to contain age")
+	}
+	if !strings.Contains(preview, "185") {
+		t.Error("expected preview to contain max HR")
+	}
+}
+
+func TestGetContextPreview_WithInsights(t *testing.T) {
+	app := newTestApp(t)
+
+	if err := app.SaveInsight("Always warm up before tempo runs"); err != nil {
+		t.Fatalf("SaveInsight: %v", err)
+	}
+
+	preview, err := app.GetContextPreview()
+	if err != nil {
+		t.Fatalf("GetContextPreview: %v", err)
+	}
+	if !strings.Contains(preview, "warm up before tempo") {
+		t.Error("expected preview to contain the saved insight")
 	}
 }
