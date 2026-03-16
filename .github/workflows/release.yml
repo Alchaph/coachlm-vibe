@@ -52,7 +52,7 @@ jobs:
         working-directory: frontend
 
       - name: Build
-        run: wails build -production ${{ matrix.build-flags }}
+        run: wails build ${{ matrix.build-flags }}
 
       - name: Package (Linux)
         if: runner.os == 'Linux'

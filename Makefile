@@ -18,7 +18,7 @@ dev:
 	$(WAILS) dev $(TAG_FLAG)
 
 build:
-	$(WAILS) build -production $(TAG_FLAG)
+	$(WAILS) build $(TAG_FLAG)
 
 test:
 	go test ./... -count=1

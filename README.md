@@ -44,8 +44,8 @@ make build
 Or without Make:
 
 ```bash
-wails build -production                    # webkit2gtk-4.0
-wails build -production -tags webkit2_41   # webkit2gtk-4.1
+wails build                    # webkit2gtk-4.0
+wails build -tags webkit2_41   # webkit2gtk-4.1
 ```
 
 Output binary location: `build/bin/`
