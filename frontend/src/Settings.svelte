@@ -281,9 +281,8 @@
   .settings {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 16px;
-    max-width: 600px;
-    margin: 0 auto;
+    padding: 24px 24px;
+    max-width: 700px;
   }
 
   .state-msg {

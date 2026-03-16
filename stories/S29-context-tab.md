@@ -1,7 +1,7 @@
 ---
 id: S29
 title: Context tab with editable profile and insights
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---

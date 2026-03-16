@@ -3,9 +3,10 @@
   import { afterUpdate, onMount } from 'svelte'
   import Dashboard from './Dashboard.svelte'
   import Settings from './Settings.svelte'
+  import Context from './Context.svelte'
   import Onboarding from './Onboarding.svelte'
 
-  type Tab = 'chat' | 'dashboard' | 'settings'
+  type Tab = 'chat' | 'dashboard' | 'context' | 'settings'
   let activeTab: Tab = 'chat'
 
   let showOnboarding = false
@@ -129,25 +130,62 @@
 </script>
 
 <main class="app-shell">
-  <nav class="tab-bar">
+  <nav class="sidebar">
     <button
-      class="tab"
+      class="nav-item"
       class:active={activeTab === 'chat'}
       on:click={() => activeTab = 'chat'}
-    >Chat</button>
+      title="Chat"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+      </svg>
+      <span class="nav-label">Chat</span>
+    </button>
     <button
-      class="tab"
+      class="nav-item"
       class:active={activeTab === 'dashboard'}
       on:click={() => activeTab = 'dashboard'}
-    >Dashboard</button>
+      title="Dashboard"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"></rect>
+        <rect x="14" y="3" width="7" height="7"></rect>
+        <rect x="3" y="14" width="7" height="7"></rect>
+        <rect x="14" y="14" width="7" height="7"></rect>
+      </svg>
+      <span class="nav-label">Dashboard</span>
+    </button>
     <button
-      class="tab"
+      class="nav-item"
+      class:active={activeTab === 'context'}
+      on:click={() => activeTab = 'context'}
+      title="Context"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+        <path d="M2 17l10 5 10-5"></path>
+        <path d="M2 12l10 5 10-5"></path>
+      </svg>
+      <span class="nav-label">Context</span>
+    </button>
+    <div class="nav-spacer"></div>
+    <button
+      class="nav-item"
       class:active={activeTab === 'settings'}
       on:click={() => activeTab = 'settings'}
-    >Settings</button>
+      title="Settings"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+      <span class="nav-label">Settings</span>
+    </button>
   </nav>
 
-  {#if activeTab === 'chat'}
+  <div class="content">
+    {#if activeTab === 'chat'}
     <div class="chat-app">
       {#if error}
         <div class="error-banner" role="alert" on:click={() => error = ''} on:keydown={(e) => e.key === 'Enter' && (error = '')}>
@@ -217,9 +255,12 @@
     </div>
   {:else if activeTab === 'dashboard'}
     <Dashboard />
+  {:else if activeTab === 'context'}
+    <Context />
   {:else if activeTab === 'settings'}
     <Settings />
   {/if}
+  </div>
 </main>
 
 {#if onboardingChecked && showOnboarding}
@@ -229,40 +270,78 @@
 <style>
   .app-shell {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     height: 100vh;
-    max-width: 800px;
-    margin: 0 auto;
     position: relative;
   }
 
-  .tab-bar {
+  .sidebar {
     display: flex;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(27, 38, 54, 0.95);
+    flex-direction: column;
+    width: 56px;
+    min-width: 56px;
+    background: rgba(15, 23, 36, 0.95);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px 0;
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: width 0.2s ease;
+  }
+
+  .sidebar:hover {
+    width: 180px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+    white-space: nowrap;
+    width: 100%;
+    text-align: left;
+  }
+
+  .nav-item:hover {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .nav-item.active {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+  }
+
+  .nav-item svg {
     flex-shrink: 0;
   }
 
-  .tab {
-    flex: 1;
-    padding: 10px 16px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    color: #94a3b8;
-    font-size: 0.9rem;
+  .nav-label {
+    font-size: 0.85rem;
     font-weight: 500;
-    cursor: pointer;
-    transition: color 0.2s, border-color 0.2s;
+    opacity: 0;
+    transition: opacity 0.15s ease;
   }
 
-  .tab:hover {
-    color: #e2e8f0;
+  .sidebar:hover .nav-label {
+    opacity: 1;
   }
 
-  .tab.active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
+  .nav-spacer {
+    flex: 1;
+  }
+
+  .content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
   }
 
   .chat-app {
@@ -297,7 +376,7 @@
   .chat-messages {
     flex: 1;
     overflow-y: auto;
-    padding: 16px;
+    padding: 16px 24px;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -346,7 +425,7 @@
   }
 
   .message-bubble {
-    max-width: 75%;
+    max-width: 70%;
     padding: 10px 14px;
     border-radius: 16px;
     font-size: 0.95rem;
@@ -480,7 +559,7 @@
     display: flex;
     align-items: flex-end;
     gap: 8px;
-    padding: 12px 16px;
+    padding: 12px 24px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(27, 38, 54, 0.95);
   }
