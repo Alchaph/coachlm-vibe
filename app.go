@@ -36,6 +36,9 @@ type SettingsData struct {
 	OllamaEndpoint     string `json:"ollamaEndpoint"`
 	StravaClientID     string `json:"stravaClientId"`
 	StravaClientSecret string `json:"stravaClientSecret"`
+	ClaudeModel        string `json:"claudeModel"`
+	OpenAIModel        string `json:"openaiModel"`
+	OllamaModel        string `json:"ollamaModel"`
 }
 
 func NewApp(db *storage.DB, llmClient llm.LLM) *App {
@@ -161,6 +164,9 @@ func (a *App) GetSettingsData() (*SettingsData, error) {
 		OllamaEndpoint:     s.OllamaEndpoint,
 		StravaClientID:     string(s.StravaClientID),
 		StravaClientSecret: string(s.StravaClientSecret),
+		ClaudeModel:        s.ClaudeModel,
+		OpenAIModel:        s.OpenAIModel,
+		OllamaModel:        s.OllamaModel,
 	}, nil
 }
 
@@ -172,6 +178,9 @@ func (a *App) SaveSettingsData(data SettingsData) error {
 		OllamaEndpoint:     data.OllamaEndpoint,
 		StravaClientID:     []byte(data.StravaClientID),
 		StravaClientSecret: []byte(data.StravaClientSecret),
+		ClaudeModel:        data.ClaudeModel,
+		OpenAIModel:        data.OpenAIModel,
+		OllamaModel:        data.OllamaModel,
 	}
 	if err := a.db.SaveSettings(s); err != nil {
 		return fmt.Errorf("save settings: %w", err)

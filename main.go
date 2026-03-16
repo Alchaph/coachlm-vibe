@@ -71,10 +71,10 @@ func createLLMClient(db *storage.DB) (llm.LLM, error) {
 
 	switch settings.ActiveLLM {
 	case "claude":
-		return llm.NewClaude(llm.ClaudeConfig{APIKey: string(settings.ClaudeAPIKey)})
+		return llm.NewClaude(llm.ClaudeConfig{APIKey: string(settings.ClaudeAPIKey), Model: settings.ClaudeModel})
 	case "openai":
-		return llm.NewOpenAI(llm.OpenAIConfig{APIKey: string(settings.OpenAIAPIKey)})
+		return llm.NewOpenAI(llm.OpenAIConfig{APIKey: string(settings.OpenAIAPIKey), Model: settings.OpenAIModel})
 	default:
-		return llm.NewLocal(llm.LocalConfig{Endpoint: settings.OllamaEndpoint}), nil
+		return llm.NewLocal(llm.LocalConfig{Endpoint: settings.OllamaEndpoint, Model: settings.OllamaModel}), nil
 	}
 }

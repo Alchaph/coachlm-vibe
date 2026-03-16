@@ -74,6 +74,9 @@ func TestSaveAndGetSettingsData_RoundTrip(t *testing.T) {
 		OllamaEndpoint:     "http://localhost:11434",
 		StravaClientID:     "strava-id",
 		StravaClientSecret: "strava-secret",
+		ClaudeModel:        "claude-opus-4-20250514",
+		OpenAIModel:        "gpt-4o-mini",
+		OllamaModel:        "llama3.1",
 	}
 
 	if err := app.SaveSettingsData(want); err != nil {
@@ -105,6 +108,15 @@ func TestSaveAndGetSettingsData_RoundTrip(t *testing.T) {
 	}
 	if got.StravaClientSecret != want.StravaClientSecret {
 		t.Errorf("StravaClientSecret = %q, want %q", got.StravaClientSecret, want.StravaClientSecret)
+	}
+	if got.ClaudeModel != want.ClaudeModel {
+		t.Errorf("ClaudeModel = %q, want %q", got.ClaudeModel, want.ClaudeModel)
+	}
+	if got.OpenAIModel != want.OpenAIModel {
+		t.Errorf("OpenAIModel = %q, want %q", got.OpenAIModel, want.OpenAIModel)
+	}
+	if got.OllamaModel != want.OllamaModel {
+		t.Errorf("OllamaModel = %q, want %q", got.OllamaModel, want.OllamaModel)
 	}
 }
 
