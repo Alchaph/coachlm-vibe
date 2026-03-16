@@ -2,50 +2,103 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
+
+	coachctx "coachlm/internal/context"
+	"coachlm/internal/fit"
+	"coachlm/internal/llm"
+	"coachlm/internal/storage"
 )
 
-// App struct holds the application state and dependencies.
 type App struct {
-	ctx context.Context
+	ctx       context.Context
+	db        *storage.DB
+	llmClient llm.LLM
+	sessionID string
 }
 
-// NewApp creates a new App application struct.
-func NewApp() *App {
-	return &App{}
+func NewApp(db *storage.DB, llmClient llm.LLM) *App {
+	return &App{db: db, llmClient: llmClient}
 }
 
-// startup is called when the app starts. The context is saved
-// so we can call the Wails runtime methods.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 }
 
-// SendMessage sends a user message to the LLM backend and returns the response.
-// This is a stub that echoes the message until the LLM router (S08/S09) is wired up.
 func (a *App) SendMessage(message string) (string, error) {
 	trimmed := strings.TrimSpace(message)
 	if trimmed == "" {
 		return "", errors.New("message cannot be empty")
 	}
-	return fmt.Sprintf("Echo: %s", trimmed), nil
+
+	if a.sessionID == "" {
+		id := fmt.Sprintf("%d", time.Now().UnixNano())
+		sess, err := a.db.CreateSession(id)
+		if err != nil {
+			return "", fmt.Errorf("create session: %w", err)
+		}
+		a.sessionID = sess.ID
+	}
+
+	if _, err := a.db.SaveMessage(a.sessionID, "user", trimmed); err != nil {
+		return "", fmt.Errorf("save user message: %w", err)
+	}
+
+	profile, _ := a.db.GetProfile()
+	activities, _ := a.db.ListActivities(28, 0)
+	insights, _ := a.db.GetInsights()
+
+	systemPrompt := coachctx.AssemblePrompt(coachctx.PromptInput{
+		Profile:    profile,
+		Activities: activities,
+		Insights:   insights,
+		Now:        time.Now(),
+	}, coachctx.DefaultPromptConfig())
+
+	history, _ := a.db.GetMessages(a.sessionID)
+	var msgs []llm.Message
+	msgs = append(msgs, llm.Message{Role: llm.RoleSystem, Content: systemPrompt})
+	for _, m := range history {
+		msgs = append(msgs, llm.Message{Role: m.Role, Content: m.Content})
+	}
+
+	response, err := a.llmClient.Chat(a.ctx, msgs)
+	if err != nil {
+		return "", fmt.Errorf("llm chat: %w", err)
+	}
+
+	if _, err := a.db.SaveMessage(a.sessionID, "assistant", response); err != nil {
+		return "", fmt.Errorf("save assistant message: %w", err)
+	}
+
+	return response, nil
 }
 
-// SaveInsight saves a chat message as a pinned insight for future context.
-// This is a stub — the real implementation will use storage.DB.SaveInsight()
-// and storage.DB.InsightExists() once wired up.
 func (a *App) SaveInsight(content string) error {
 	trimmed := strings.TrimSpace(content)
 	if trimmed == "" {
 		return errors.New("insight content must not be empty")
 	}
-	// TODO: wire up storage.DB.InsightExists + SaveInsight
+
+	exists, err := a.db.InsightExists(trimmed)
+	if err != nil {
+		return fmt.Errorf("check insight exists: %w", err)
+	}
+	if exists {
+		return nil
+	}
+
+	if _, err := a.db.SaveInsight(trimmed, a.sessionID); err != nil {
+		return fmt.Errorf("save insight: %w", err)
+	}
 	return nil
 }
 
-// ActivityRecord is a serializable representation of an activity for the frontend dashboard.
 type ActivityRecord struct {
 	Name         string  `json:"name"`
 	ActivityType string  `json:"activityType"`
@@ -56,10 +109,25 @@ type ActivityRecord struct {
 	AvgHR        int     `json:"avgHR"`
 }
 
-// GetRecentActivities returns the most recent activities for the dashboard.
-// This is a stub that returns an empty slice until the storage layer is wired up.
 func (a *App) GetRecentActivities(limit int) ([]ActivityRecord, error) {
-	return []ActivityRecord{}, nil
+	activities, err := a.db.ListActivities(limit, 0)
+	if err != nil {
+		return nil, fmt.Errorf("list activities: %w", err)
+	}
+
+	records := make([]ActivityRecord, 0, len(activities))
+	for _, act := range activities {
+		records = append(records, ActivityRecord{
+			Name:         act.Name,
+			ActivityType: act.ActivityType,
+			StartDate:    act.StartDate.Format(time.RFC3339),
+			Distance:     act.Distance / 1000.0,
+			DurationSecs: act.DurationSecs,
+			AvgPaceSecs:  act.AvgPaceSecs,
+			AvgHR:        act.AvgHR,
+		})
+	}
+	return records, nil
 }
 
 func (a *App) ImportFITFile(filePath string) error {
@@ -67,5 +135,56 @@ func (a *App) ImportFITFile(filePath string) error {
 	if trimmed == "" {
 		return errors.New("file path must not be empty")
 	}
+
+	parsed, err := fit.ParseFITFile(trimmed)
+	if err != nil {
+		return fmt.Errorf("parse FIT file: %w", err)
+	}
+
+	// Negative StravaID from content hash: avoids collision with real Strava IDs
+	// (always positive) while enabling deduplication for re-imported FIT files.
+	hashHex := fit.DeduplicationHash(parsed)
+	hashInt, _ := strconv.ParseUint(hashHex[:16], 16, 64)
+	negativeID := -int64(hashInt>>1) - 1
+
+	activity := &storage.Activity{
+		StravaID:     negativeID,
+		Name:         parsed.Name,
+		ActivityType: parsed.ActivityType,
+		StartDate:    parsed.StartDate,
+		Distance:     parsed.Distance,
+		DurationSecs: parsed.DurationSecs,
+		AvgPaceSecs:  parsed.AvgPaceSecs,
+		AvgHR:        parsed.AvgHR,
+		MaxHR:        parsed.MaxHR,
+		AvgCadence:   parsed.AvgCadence,
+		Source:       "fit_import",
+	}
+
+	if err := a.db.SaveActivity(activity); err != nil {
+		return fmt.Errorf("save activity: %w", err)
+	}
+
+	saved, err := a.db.GetActivityByStravaID(negativeID)
+	if err != nil || saved == nil {
+		return nil
+	}
+
+	if parsed.HeartRate != nil {
+		if data, err := json.Marshal(parsed.HeartRate); err == nil {
+			_ = a.db.SaveActivityStream(saved.ID, "heartrate", data)
+		}
+	}
+	if parsed.Pace != nil {
+		if data, err := json.Marshal(parsed.Pace); err == nil {
+			_ = a.db.SaveActivityStream(saved.ID, "pace", data)
+		}
+	}
+	if parsed.Cadence != nil {
+		if data, err := json.Marshal(parsed.Cadence); err == nil {
+			_ = a.db.SaveActivityStream(saved.ID, "cadence", data)
+		}
+	}
+
 	return nil
 }

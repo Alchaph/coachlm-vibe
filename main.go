@@ -2,6 +2,13 @@ package main
 
 import (
 	"embed"
+	"fmt"
+	"log"
+	"os"
+	"path/filepath"
+
+	"coachlm/internal/llm"
+	"coachlm/internal/storage"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -12,9 +19,30 @@ import (
 var assets embed.FS
 
 func main() {
-	app := NewApp()
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("get home directory: %v", err)
+	}
 
-	err := wails.Run(&options.App{
+	dataDir := filepath.Join(homeDir, ".coachlm")
+	if err := os.MkdirAll(dataDir, 0700); err != nil {
+		log.Fatalf("create data directory: %v", err)
+	}
+
+	db, err := storage.New(filepath.Join(dataDir, "coachlm.db"))
+	if err != nil {
+		log.Fatalf("open database: %v", err)
+	}
+	defer db.Close()
+
+	llmClient, err := createLLMClient(db)
+	if err != nil {
+		log.Fatalf("create LLM client: %v", err)
+	}
+
+	app := NewApp(db, llmClient)
+
+	if err := wails.Run(&options.App{
 		Title:  "CoachLM",
 		Width:  1024,
 		Height: 768,
@@ -26,9 +54,27 @@ func main() {
 		Bind: []interface{}{
 			app,
 		},
-	})
+	}); err != nil {
+		fmt.Println("Error:", err.Error())
+	}
+}
 
+func createLLMClient(db *storage.DB) (llm.LLM, error) {
+	settings, err := db.GetSettings()
 	if err != nil {
-		println("Error:", err.Error())
+		return nil, fmt.Errorf("get settings: %w", err)
+	}
+
+	if settings == nil {
+		return llm.NewLocal(llm.LocalConfig{}), nil
+	}
+
+	switch settings.ActiveLLM {
+	case "claude":
+		return llm.NewClaude(llm.ClaudeConfig{APIKey: string(settings.ClaudeAPIKey)})
+	case "openai":
+		return llm.NewOpenAI(llm.OpenAIConfig{APIKey: string(settings.OpenAIAPIKey)})
+	default:
+		return llm.NewLocal(llm.LocalConfig{Endpoint: settings.OllamaEndpoint}), nil
 	}
 }
