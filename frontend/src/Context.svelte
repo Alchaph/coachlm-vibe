@@ -213,36 +213,36 @@
       <h2>Athlete Profile</h2>
       <div class="form-grid">
         <div class="field">
-          <label class="field-label">Age</label>
-          <input type="number" bind:value={age} placeholder="30" min="1" max="120" />
+          <label class="field-label" for="age">Age</label>
+          <input id="age" type="number" bind:value={age} placeholder="30" min="1" max="120" />
         </div>
         <div class="field">
-          <label class="field-label">Max Heart Rate</label>
-          <input type="number" bind:value={maxHR} placeholder="185" min="100" max="220" />
+          <label class="field-label" for="max-hr">Max Heart Rate</label>
+          <input id="max-hr" type="number" bind:value={maxHR} placeholder="185" min="100" max="220" />
         </div>
         <div class="field">
-          <label class="field-label">Threshold Pace (/km)</label>
+          <label class="field-label" for="threshold-pace-mins">Threshold Pace (/km)</label>
           <div class="pace-input">
-            <input type="number" bind:value={thresholdPaceMins} placeholder="5" min="0" max="15" />
+            <input id="threshold-pace-mins" type="number" bind:value={thresholdPaceMins} placeholder="5" min="0" max="15" />
             <span class="pace-sep">:</span>
-            <input type="number" bind:value={thresholdPaceSecs} placeholder="00" min="0" max="59" />
+            <input id="threshold-pace-secs" type="number" bind:value={thresholdPaceSecs} placeholder="00" min="0" max="59" />
           </div>
         </div>
         <div class="field">
-          <label class="field-label">Weekly Mileage Target (km)</label>
-          <input type="number" bind:value={weeklyMileageTarget} placeholder="50" step="0.1" min="0" />
+          <label class="field-label" for="weekly-mileage">Weekly Mileage Target (km)</label>
+          <input id="weekly-mileage" type="number" bind:value={weeklyMileageTarget} placeholder="50" step="0.1" min="0" />
         </div>
         <div class="field full-width">
-          <label class="field-label">Race Goals</label>
-          <textarea bind:value={raceGoals} placeholder="e.g. Sub-3:30 marathon in October" rows="2"></textarea>
+          <label class="field-label" for="race-goals">Race Goals</label>
+          <textarea id="race-goals" bind:value={raceGoals} placeholder="e.g. Sub-3:30 marathon in October" rows="2"></textarea>
         </div>
         <div class="field full-width">
-          <label class="field-label">Injury History</label>
-          <textarea bind:value={injuryHistory} placeholder="e.g. IT band issues in 2024, fully recovered" rows="2"></textarea>
+          <label class="field-label" for="injury-history">Injury History</label>
+          <textarea id="injury-history" bind:value={injuryHistory} placeholder="e.g. IT band issues in 2024, fully recovered" rows="2"></textarea>
         </div>
         <div class="field">
-          <label class="field-label">Experience Level</label>
-          <select bind:value={experienceLevel}>
+          <label class="field-label" for="experience-level">Experience Level</label>
+          <select id="experience-level" bind:value={experienceLevel}>
             <option value=""></option>
             <option value="beginner">Beginner</option>
             <option value="intermediate">Intermediate</option>
@@ -251,16 +251,16 @@
           </select>
         </div>
         <div class="field">
-          <label class="field-label">Training Days Per Week</label>
-          <input type="number" bind:value={trainingDaysPerWeek} placeholder="4" min="1" max="7" />
+          <label class="field-label" for="training-days">Training Days Per Week</label>
+          <input id="training-days" type="number" bind:value={trainingDaysPerWeek} placeholder="4" min="1" max="7" />
         </div>
         <div class="field">
-          <label class="field-label">Resting Heart Rate</label>
-          <input type="number" bind:value={restingHR} placeholder="50" min="30" max="120" />
+          <label class="field-label" for="resting-hr">Resting Heart Rate</label>
+          <input id="resting-hr" type="number" bind:value={restingHR} placeholder="50" min="30" max="120" />
         </div>
         <div class="field">
-          <label class="field-label">Preferred Terrain</label>
-          <select bind:value={preferredTerrain}>
+          <label class="field-label" for="preferred-terrain">Preferred Terrain</label>
+          <select id="preferred-terrain" bind:value={preferredTerrain}>
             <option value=""></option>
             <option value="road">Road</option>
             <option value="trail">Trail</option>

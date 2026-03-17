@@ -184,8 +184,8 @@
         <p class="subtitle">Select which LLM will power your coaching conversations.</p>
 
         <div class="form">
-          <label class="field-label">Backend</label>
-          <select bind:value={activeLlm}>
+          <label class="field-label" for="onboarding-backend">Backend</label>
+          <select id="onboarding-backend" bind:value={activeLlm}>
             <option value="free">Free (Gemini Flash)</option>
             <option value="claude">Claude</option>
             <option value="openai">OpenAI</option>
@@ -197,43 +197,43 @@
           {/if}
 
           {#if activeLlm === 'claude'}
-            <label class="field-label">Claude API Key</label>
+            <label class="field-label" for="onboarding-claude-api-key">Claude API Key</label>
             <div class="input-row">
               {#if showApiKey}
-                <input type="text" bind:value={claudeApiKey} placeholder="sk-ant-..." />
+                <input id="onboarding-claude-api-key" type="text" bind:value={claudeApiKey} placeholder="sk-ant-..." />
               {:else}
-                <input type="password" bind:value={claudeApiKey} placeholder="sk-ant-..." />
+                <input id="onboarding-claude-api-key" type="password" bind:value={claudeApiKey} placeholder="sk-ant-..." />
               {/if}
               <button class="toggle-btn" on:click={() => showApiKey = !showApiKey}>
                 {showApiKey ? 'Hide' : 'Show'}
               </button>
             </div>
-            <label class="field-label">Model</label>
-            <input type="text" bind:value={claudeModel} placeholder="claude-sonnet-4-20250514" />
+            <label class="field-label" for="onboarding-claude-model">Model</label>
+            <input id="onboarding-claude-model" type="text" bind:value={claudeModel} placeholder="claude-sonnet-4-20250514" />
           {/if}
 
           {#if activeLlm === 'openai'}
-            <label class="field-label">OpenAI API Key</label>
+            <label class="field-label" for="onboarding-openai-api-key">OpenAI API Key</label>
             <div class="input-row">
               {#if showApiKey}
-                <input type="text" bind:value={openaiApiKey} placeholder="sk-..." />
+                <input id="onboarding-openai-api-key" type="text" bind:value={openaiApiKey} placeholder="sk-..." />
               {:else}
-                <input type="password" bind:value={openaiApiKey} placeholder="sk-..." />
+                <input id="onboarding-openai-api-key" type="password" bind:value={openaiApiKey} placeholder="sk-..." />
               {/if}
               <button class="toggle-btn" on:click={() => showApiKey = !showApiKey}>
                 {showApiKey ? 'Hide' : 'Show'}
               </button>
             </div>
-            <label class="field-label">Model</label>
-            <input type="text" bind:value={openaiModel} placeholder="gpt-4o" />
+            <label class="field-label" for="onboarding-openai-model">Model</label>
+            <input id="onboarding-openai-model" type="text" bind:value={openaiModel} placeholder="gpt-4o" />
           {/if}
 
           {#if activeLlm === 'local'}
-            <label class="field-label">Ollama Endpoint</label>
-            <input type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
-            <label class="field-label">Model</label>
+            <label class="field-label" for="onboarding-ollama-endpoint">Ollama Endpoint</label>
+            <input id="onboarding-ollama-endpoint" type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
+            <label class="field-label" for="onboarding-ollama-model">Model</label>
             <div class="input-row">
-              <input type="text" bind:value={ollamaModel} placeholder="llama3" />
+              <input id="onboarding-ollama-model" type="text" bind:value={ollamaModel} placeholder="llama3" />
               <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
                 {fetchingModels ? '...' : 'Fetch'}
               </button>
@@ -270,11 +270,11 @@
         <p class="subtitle">Sync your activities automatically. You can skip this and set it up later.</p>
 
         <div class="form">
-          <label class="field-label">Client ID</label>
-          <input type="text" bind:value={stravaClientId} placeholder="Your Strava Client ID" />
+          <label class="field-label" for="onboarding-strava-client-id">Client ID</label>
+          <input id="onboarding-strava-client-id" type="text" bind:value={stravaClientId} placeholder="Your Strava Client ID" />
 
-          <label class="field-label">Client Secret</label>
-          <input type="password" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
+          <label class="field-label" for="onboarding-strava-client-secret">Client Secret</label>
+          <input id="onboarding-strava-client-secret" type="password" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
         </div>
 
         <div class="actions">
@@ -299,40 +299,40 @@
         <div class="profile-form">
           <div class="form-row">
             <div class="field">
-              <label class="field-label">Age</label>
-              <input type="number" bind:value={profileAge} placeholder="30" min="1" max="120" />
+              <label class="field-label" for="onboarding-age">Age</label>
+              <input id="onboarding-age" type="number" bind:value={profileAge} placeholder="30" min="1" max="120" />
             </div>
             <div class="field">
-              <label class="field-label">Max Heart Rate</label>
-              <input type="number" bind:value={profileMaxHR} placeholder="185" min="100" max="220" />
+              <label class="field-label" for="onboarding-max-hr">Max Heart Rate</label>
+              <input id="onboarding-max-hr" type="number" bind:value={profileMaxHR} placeholder="185" min="100" max="220" />
             </div>
           </div>
           <div class="form-row">
             <div class="field">
-              <label class="field-label">Threshold Pace (/km)</label>
+              <label class="field-label" for="onboarding-threshold-mins">Threshold Pace (/km)</label>
               <div class="pace-input">
-                <input type="number" bind:value={profileThresholdMins} placeholder="5" min="0" max="15" />
+                <input id="onboarding-threshold-mins" type="number" bind:value={profileThresholdMins} placeholder="5" min="0" max="15" />
                 <span class="pace-sep">:</span>
-                <input type="number" bind:value={profileThresholdSecs} placeholder="00" min="0" max="59" />
+                <input id="onboarding-threshold-secs" type="number" bind:value={profileThresholdSecs} placeholder="00" min="0" max="59" />
               </div>
             </div>
             <div class="field">
-              <label class="field-label">Weekly Mileage Target (km)</label>
-              <input type="number" bind:value={profileWeeklyMileage} placeholder="50" step="0.1" min="0" />
+              <label class="field-label" for="onboarding-weekly-mileage">Weekly Mileage Target (km)</label>
+              <input id="onboarding-weekly-mileage" type="number" bind:value={profileWeeklyMileage} placeholder="50" step="0.1" min="0" />
             </div>
           </div>
           <div class="field">
-            <label class="field-label">Race Goals</label>
-            <textarea bind:value={profileRaceGoals} placeholder="e.g. Sub-3:30 marathon in October" rows="2"></textarea>
+            <label class="field-label" for="onboarding-race-goals">Race Goals</label>
+            <textarea id="onboarding-race-goals" bind:value={profileRaceGoals} placeholder="e.g. Sub-3:30 marathon in October" rows="2"></textarea>
           </div>
           <div class="field">
-            <label class="field-label">Injury History</label>
-            <textarea bind:value={profileInjuryHistory} placeholder="e.g. IT band issues in 2024, fully recovered" rows="2"></textarea>
+            <label class="field-label" for="onboarding-injury-history">Injury History</label>
+            <textarea id="onboarding-injury-history" bind:value={profileInjuryHistory} placeholder="e.g. IT band issues in 2024, fully recovered" rows="2"></textarea>
           </div>
           <div class="form-row">
             <div class="field">
-              <label class="field-label">Experience Level</label>
-              <select bind:value={profileExperienceLevel}>
+              <label class="field-label" for="onboarding-experience">Experience Level</label>
+              <select id="onboarding-experience" bind:value={profileExperienceLevel}>
                 <option value=""></option>
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
@@ -341,18 +341,18 @@
               </select>
             </div>
             <div class="field">
-              <label class="field-label">Training Days/Week</label>
-              <input type="number" bind:value={profileTrainingDaysPerWeek} placeholder="4" min="1" max="7" />
+              <label class="field-label" for="onboarding-training-days">Training Days/Week</label>
+              <input id="onboarding-training-days" type="number" bind:value={profileTrainingDaysPerWeek} placeholder="4" min="1" max="7" />
             </div>
           </div>
           <div class="form-row">
             <div class="field">
-              <label class="field-label">Resting HR</label>
-              <input type="number" bind:value={profileRestingHR} placeholder="50" min="30" max="120" />
+              <label class="field-label" for="onboarding-resting-hr">Resting HR</label>
+              <input id="onboarding-resting-hr" type="number" bind:value={profileRestingHR} placeholder="50" min="30" max="120" />
             </div>
             <div class="field">
-              <label class="field-label">Preferred Terrain</label>
-              <select bind:value={profilePreferredTerrain}>
+              <label class="field-label" for="onboarding-terrain">Preferred Terrain</label>
+              <select id="onboarding-terrain" bind:value={profilePreferredTerrain}>
                 <option value=""></option>
                 <option value="road">Road</option>
                 <option value="trail">Trail</option>

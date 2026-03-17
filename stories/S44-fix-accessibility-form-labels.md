@@ -1,7 +1,7 @@
 ---
 id: S44
 title: Fix accessibility issues with form labels
-status: draft
+status: done
 created: 2026-03-17
 updated: 2026-03-17
 ---

@@ -196,8 +196,8 @@
     <section>
       <h2>LLM Backend</h2>
 
-      <label class="field-label">Active Backend</label>
-      <select bind:value={activeLlm}>
+      <label class="field-label" for="active-backend">Active Backend</label>
+      <select id="active-backend" bind:value={activeLlm}>
         <option value="free">Free (Gemini Flash)</option>
         <option value="claude">Claude</option>
         <option value="openai">OpenAI</option>
@@ -209,43 +209,43 @@
       {/if}
 
       {#if activeLlm === 'claude'}
-        <label class="field-label">Claude API Key</label>
+        <label class="field-label" for="claude-api-key">Claude API Key</label>
         <div class="input-row">
           {#if showClaudeKey}
-            <input type="text" bind:value={claudeApiKey} placeholder="sk-ant-..." />
+            <input id="claude-api-key" type="text" bind:value={claudeApiKey} placeholder="sk-ant-..." />
           {:else}
-            <input type="password" bind:value={claudeApiKey} placeholder="sk-ant-..." />
+            <input id="claude-api-key" type="password" bind:value={claudeApiKey} placeholder="sk-ant-..." />
           {/if}
           <button class="toggle-btn" on:click={() => showClaudeKey = !showClaudeKey}>
             {showClaudeKey ? 'Hide' : 'Show'}
           </button>
         </div>
-        <label class="field-label">Model</label>
-        <input type="text" bind:value={claudeModel} placeholder="claude-sonnet-4-20250514" />
+        <label class="field-label" for="claude-model">Model</label>
+        <input id="claude-model" type="text" bind:value={claudeModel} placeholder="claude-sonnet-4-20250514" />
       {/if}
 
       {#if activeLlm === 'openai'}
-        <label class="field-label">OpenAI API Key</label>
+        <label class="field-label" for="openai-api-key">OpenAI API Key</label>
         <div class="input-row">
           {#if showOpenaiKey}
-            <input type="text" bind:value={openaiApiKey} placeholder="sk-..." />
+            <input id="openai-api-key" type="text" bind:value={openaiApiKey} placeholder="sk-..." />
           {:else}
-            <input type="password" bind:value={openaiApiKey} placeholder="sk-..." />
+            <input id="openai-api-key" type="password" bind:value={openaiApiKey} placeholder="sk-..." />
           {/if}
           <button class="toggle-btn" on:click={() => showOpenaiKey = !showOpenaiKey}>
             {showOpenaiKey ? 'Hide' : 'Show'}
           </button>
         </div>
-        <label class="field-label">Model</label>
-        <input type="text" bind:value={openaiModel} placeholder="gpt-4o" />
+        <label class="field-label" for="openai-model">Model</label>
+        <input id="openai-model" type="text" bind:value={openaiModel} placeholder="gpt-4o" />
       {/if}
 
       {#if activeLlm === 'local'}
-        <label class="field-label">Ollama Endpoint</label>
-        <input type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
-        <label class="field-label">Model</label>
+        <label class="field-label" for="ollama-endpoint">Ollama Endpoint</label>
+        <input id="ollama-endpoint" type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
+        <label class="field-label" for="ollama-model">Model</label>
         <div class="input-row">
-          <input type="text" bind:value={ollamaModel} placeholder="llama3" />
+          <input id="ollama-model" type="text" bind:value={ollamaModel} placeholder="llama3" />
           <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
             {fetchingModels ? '...' : 'Fetch'}
           </button>
@@ -278,15 +278,15 @@
         </span>
       </div>
 
-      <label class="field-label">Client ID</label>
-      <input type="text" bind:value={stravaClientId} placeholder="Your Strava Client ID" />
+      <label class="field-label" for="strava-client-id">Client ID</label>
+      <input id="strava-client-id" type="text" bind:value={stravaClientId} placeholder="Your Strava Client ID" />
 
-      <label class="field-label">Client Secret</label>
+      <label class="field-label" for="strava-client-secret">Client Secret</label>
       <div class="input-row">
         {#if showStravaSecret}
-          <input type="text" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
+          <input id="strava-client-secret" type="text" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
         {:else}
-          <input type="password" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
+          <input id="strava-client-secret" type="password" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
         {/if}
         <button class="toggle-btn" on:click={() => showStravaSecret = !showStravaSecret}>
           {showStravaSecret ? 'Hide' : 'Show'}
