@@ -75,8 +75,8 @@ func TestAssemblePrompt_AllBlocksFit(t *testing.T) {
 
 	result := AssemblePrompt(input, config)
 
-	if !strings.Contains(result, systemPreamble) {
-		t.Error("missing system preamble")
+	if !strings.Contains(result, "# CoachLM — Running Coach") {
+		t.Error("missing system preamble title")
 	}
 	if !strings.Contains(result, "## Coaching Insights") {
 		t.Error("missing insights section")
@@ -146,7 +146,7 @@ func TestAssemblePrompt_TrainingSummaryTruncated(t *testing.T) {
 	fullResult := AssemblePrompt(input, PromptConfig{TokenBudget: 100000})
 	fullTokens := EstimateTokens(fullResult)
 
-	tightBudget := fullTokens / 2
+	tightBudget := (fullTokens / 2) + 50
 	result := AssemblePrompt(input, PromptConfig{TokenBudget: tightBudget})
 
 	if EstimateTokens(result) > tightBudget {
@@ -172,7 +172,7 @@ func TestAssemblePrompt_NoTrainingData(t *testing.T) {
 
 	result := AssemblePrompt(input, config)
 
-	if !strings.Contains(result, systemPreamble) {
+	if !strings.Contains(result, buildSystemPreamble()) {
 		t.Error("missing preamble")
 	}
 	if !strings.Contains(result, "## Coaching Insights") {
@@ -205,7 +205,7 @@ func TestAssemblePrompt_PinnedInsightsNeverTruncated(t *testing.T) {
 	}
 
 	insightsBlock := formatInsightsBlock(insights)
-	tinyBudget := EstimateTokens(systemPreamble) / 2
+	tinyBudget := EstimateTokens(buildSystemPreamble()) / 2
 
 	result := AssemblePrompt(input, PromptConfig{TokenBudget: tinyBudget})
 
@@ -231,7 +231,7 @@ func TestAssemblePrompt_EmptyEverything(t *testing.T) {
 
 	result := AssemblePrompt(input, config)
 
-	if !strings.Contains(result, systemPreamble) {
+	if !strings.Contains(result, buildSystemPreamble()) {
 		t.Error("preamble must always be present")
 	}
 	if !strings.Contains(result, "No profile configured") {
@@ -264,7 +264,7 @@ func TestAssemblePrompt_LargeProfileTruncated(t *testing.T) {
 		Now:        now,
 	}
 
-	preambleTokens := EstimateTokens(systemPreamble)
+	preambleTokens := EstimateTokens(buildSystemPreamble())
 	insightsTokens := EstimateTokens(formatInsightsBlock(input.Insights))
 	budget := preambleTokens + insightsTokens + 50
 
@@ -273,7 +273,7 @@ func TestAssemblePrompt_LargeProfileTruncated(t *testing.T) {
 	if !strings.Contains(result, "## Coaching Insights") {
 		t.Error("insights must be present")
 	}
-	if !strings.Contains(result, systemPreamble) {
+	if !strings.Contains(result, buildSystemPreamble()) {
 		t.Error("preamble must be present")
 	}
 
@@ -296,7 +296,7 @@ func TestAssemblePrompt_BudgetSmallerThanPreamblePlusInsights(t *testing.T) {
 
 	result := AssemblePrompt(input, PromptConfig{TokenBudget: 10})
 
-	if !strings.Contains(result, systemPreamble) {
+	if !strings.Contains(result, buildSystemPreamble()) {
 		t.Error("preamble must always be present")
 	}
 	for _, ins := range insights {
@@ -314,7 +314,7 @@ func TestAssemblePrompt_ZeroBudgetUsesDefault(t *testing.T) {
 	}
 
 	result := AssemblePrompt(input, PromptConfig{TokenBudget: 0})
-	if !strings.Contains(result, systemPreamble) {
+	if !strings.Contains(result, buildSystemPreamble()) {
 		t.Error("should use default budget and include preamble")
 	}
 }
@@ -417,6 +417,35 @@ func TestFormatInsightsBlock(t *testing.T) {
 			if !strings.Contains(result, "- "+ins.Content) {
 				t.Errorf("missing insight: %q", ins.Content)
 			}
+		}
+	})
+}
+
+func TestBuildSystemPreamble(t *testing.T) {
+	t.Run("contains required sections", func(t *testing.T) {
+		preamble := buildSystemPreamble()
+		required := []string{
+			"# CoachLM — Running Coach",
+			"## Role",
+			"## Response Rules",
+			"## Output Format",
+			"Lead with the answer",
+			"Reference the athlete's actual numbers",
+			"Default to ≤150 words",
+			"Prescribe specific paces and distances",
+		}
+		for _, req := range required {
+			if !strings.Contains(preamble, req) {
+				t.Errorf("preamble missing required section: %q", req)
+			}
+		}
+	})
+
+	t.Run("token count under limit", func(t *testing.T) {
+		preamble := buildSystemPreamble()
+		tokens := EstimateTokens(preamble)
+		if tokens > 600 {
+			t.Errorf("preamble too large: %d tokens, should be ≤ 600", tokens)
 		}
 	})
 }

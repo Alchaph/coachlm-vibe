@@ -1,7 +1,7 @@
 ---
 id: S36
 title: Coaching system prompt framework
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
