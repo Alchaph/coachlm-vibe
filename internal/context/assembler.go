@@ -47,10 +47,11 @@ func DefaultPromptConfig() PromptConfig {
 
 // PromptInput holds all the data needed to assemble a prompt.
 type PromptInput struct {
-	Profile    *storage.AthleteProfile
-	Activities []storage.Activity
-	Insights   []storage.PinnedInsight
-	Now        time.Time
+	Profile      *storage.AthleteProfile
+	Activities   []storage.Activity
+	Insights     []storage.PinnedInsight
+	CustomPrompt string
+	Now          time.Time
 }
 
 // EstimateTokens returns an estimated token count: 4 characters ≈ 1 token (ceiling division).
@@ -84,7 +85,12 @@ func AssemblePrompt(input PromptInput, config PromptConfig) string {
 	profileBlock := "## Athlete Profile\n" + FormatProfileBlock(input.Profile)
 	trainingBlock := FormatTrainingSummary(input.Activities, input.Now)
 
-	sacredText := preamble
+	customBlock := ""
+	if input.CustomPrompt != "" {
+		customBlock = "\n\n## Your Custom Instructions\n" + input.CustomPrompt
+	}
+
+	sacredText := preamble + customBlock
 	if insightsBlock != "" {
 		sacredText += "\n\n" + insightsBlock
 	}
@@ -108,28 +114,28 @@ func AssemblePrompt(input PromptInput, config PromptConfig) string {
 	profileTokens := EstimateTokens(profileBlock)
 
 	if profileTokens+EstimateTokens(trainingBlock) <= remainingTokens {
-		return full
+		return joinSections(preamble, customBlock, insightsBlock, profileBlock, trainingBlock)
 	}
 
 	tokensForTraining := remainingTokens - profileTokens
 	if tokensForTraining > 0 {
 		truncatedTraining := truncateToTokens(trainingBlock, tokensForTraining)
 		if truncatedTraining != "" {
-			return joinSections(preamble, insightsBlock, profileBlock, truncatedTraining)
+			return joinSections(preamble, customBlock, insightsBlock, profileBlock, truncatedTraining)
 		}
 	}
 
 	if tokensForTraining >= 0 {
-		return joinSections(preamble, insightsBlock, profileBlock, "")
+		return joinSections(preamble, customBlock, insightsBlock, profileBlock, "")
 	}
 
 	tokensForProfile := remainingTokens
 	if tokensForProfile > 0 {
 		truncatedProfile := truncateToTokens(profileBlock, tokensForProfile)
-		return joinSections(preamble, insightsBlock, truncatedProfile, "")
+		return joinSections(preamble, customBlock, insightsBlock, truncatedProfile, "")
 	}
 
-	return joinSections(preamble, insightsBlock, "", "")
+	return joinSections(preamble, customBlock, insightsBlock, "", "")
 }
 
 func joinSections(parts ...string) string {

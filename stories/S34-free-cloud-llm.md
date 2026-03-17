@@ -1,7 +1,7 @@
 ---
 id: S34
 title: Free cloud LLM backend for zero-setup onboarding
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---

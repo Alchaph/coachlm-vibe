@@ -1,7 +1,7 @@
 ---
 id: S39
 title: User-defined system prompt additions
-status: draft
+status: in-progress
 created: 2026-03-16
 updated: 2026-03-16
 ---

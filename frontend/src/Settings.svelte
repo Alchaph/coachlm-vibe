@@ -9,7 +9,7 @@
     GetOllamaModels
   } from '../wailsjs/go/main/App.js'
 
-  let activeLlm = 'local'
+  let activeLlm = 'free'
   let claudeApiKey = ''
   let openaiApiKey = ''
   let ollamaEndpoint = 'http://localhost:11434'
@@ -164,10 +164,15 @@
 
       <label class="field-label">Active Backend</label>
       <select bind:value={activeLlm}>
+        <option value="free">Free (Gemini Flash)</option>
         <option value="claude">Claude</option>
         <option value="openai">OpenAI</option>
         <option value="local">Local (Ollama)</option>
       </select>
+
+      {#if activeLlm === 'free'}
+        <p class="field-note">No setup required - using built-in free tier API.</p>
+      {/if}
 
       {#if activeLlm === 'claude'}
         <label class="field-label">Claude API Key</label>
@@ -357,6 +362,13 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 600;
+  }
+
+  .field-note {
+    font-size: 0.85rem;
+    color: #22c55e;
+    margin-bottom: 12px;
+    font-style: italic;
   }
 
   select,

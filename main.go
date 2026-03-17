@@ -70,6 +70,12 @@ func createLLMClient(db *storage.DB) (llm.LLM, error) {
 	}
 
 	switch settings.ActiveLLM {
+	case "free":
+		client, err := llm.NewFree(llm.FreeConfig{})
+		if err != nil {
+			return nil, fmt.Errorf("create free LLM: %w", err)
+		}
+		return client, nil
 	case "claude":
 		return llm.NewClaude(llm.ClaudeConfig{APIKey: string(settings.ClaudeAPIKey), Model: settings.ClaudeModel})
 	case "openai":

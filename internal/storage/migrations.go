@@ -94,6 +94,7 @@ var migrations = []string{
 	`ALTER TABLE athlete_profile ADD COLUMN training_days_per_week INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE athlete_profile ADD COLUMN resting_hr INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE athlete_profile ADD COLUMN preferred_terrain TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE settings ADD COLUMN custom_system_prompt TEXT NOT NULL DEFAULT ''`,
 }
 
 func (db *DB) migrate() error {
