@@ -1,20 +1,74 @@
 # CoachLM
 
-AI-powered running coach desktop app. Syncs your Strava activities, builds a persistent athlete context, and provides personalized coaching through Claude, ChatGPT, or a local Ollama model — all running locally on your machine.
+Your personal AI running coach that lives on your computer.
 
-## Installation
+Connect your Strava account, chat with an AI coach that knows your training history, and get personalized insights about your running — all without your data ever leaving your machine.
 
-Download the latest release for your platform from the [Releases page](https://github.com/Alchaph/coachlm-vibe/releases/latest).
+---
 
-| Platform | File | Instructions |
-|----------|------|--------------|
-| **Linux** | `coachlm-linux` | `chmod +x coachlm-linux && ./coachlm-linux` |
-| **macOS** | `coachlm-macos.zip` | Unzip, move `CoachLM.app` to Applications, open |
-| **Windows** | `coachlm-windows.exe` | Download and run |
+## What can it do?
 
-### Linux dependencies
+**💬 Chat with a smart running coach**
+- Ask about training plans, recovery, race strategies, or anything running-related
+- The AI knows your actual running history — past workouts, pace trends, heart rate patterns
+- Save the best advice so the AI remembers it for future conversations
 
-CoachLM requires GTK3 and WebKit2GTK at runtime:
+**🏃 See your running history**
+- Auto-syncs all your Strava activities
+- View recent runs with distance, pace, heart rate, and cadence
+- Import FIT files directly from Garmin, Wahoo, and other devices
+
+**🤖 Choose your AI**
+- Use Claude, ChatGPT, or run a local model with Ollama (no internet needed after setup)
+- Your API keys are stored securely — never sent anywhere
+
+**🔒 Your data stays yours**
+- Everything runs locally on your computer
+- No cloud accounts, no subscription, no data mining
+- SQLite database means you own your data — export it anytime
+
+---
+
+## Get started
+
+### Download
+
+Head to the [Releases page](https://github.com/Alchaph/coachlm-vibe/releases/latest) and grab the version for your computer:
+
+| Your computer | Download this |
+|---------------|---------------|
+| Windows | `coachlm-windows.exe` |
+| macOS | `coachlm-macos.zip` |
+| Linux | `coachlm-linux` |
+
+### Run it
+
+**Windows**: Just double-click the `.exe` file
+
+**macOS**: Unzip, then drag `CoachLM.app` to your Applications folder and open it
+
+**Linux**: 
+```bash
+chmod +x coachlm-linux
+./coachlm-linux
+```
+
+*Linux users may need to install GTK3 and WebKit2GTK first — see below*
+
+### First time setup
+
+When you launch CoachLM for the first time, a setup wizard will help you:
+1. Connect your Strava account (optional)
+2. Choose an AI model (Claude, ChatGPT, or local Ollama)
+3. Set up your athlete profile (age, max heart rate, goals)
+
+That's it — you're ready to chat with your coach!
+
+---
+
+## Linux users only
+
+If you're on Linux, you'll need these libraries:
 
 ```bash
 # Ubuntu / Debian
@@ -27,55 +81,23 @@ sudo pacman -S webkit2gtk-4.1
 sudo dnf install gtk3 webkit2gtk4.1
 ```
 
-## Features
+---
 
-**Coaching Chat**
-- Chat with your AI running coach — context-aware responses based on your actual training data
-- Pin useful insights from conversations to build a persistent knowledge base
-- Markdown rendering with code blocks, lists, and formatting
+## Tech details (for the curious)
 
-**Strava Integration**
-- OAuth2 authentication flow with encrypted token storage
-- Sync recent activities including distance, pace, heart rate, and cadence
-- Webhook support for automatic activity ingestion
-- Activity stream data (HR, pace, cadence time series)
+CoachLM is built with:
+- **Backend**: Go with Wails v2
+- **Frontend**: Svelte + TypeScript
+- **Database**: SQLite (pure Go, no external dependencies)
+- **LLM**: Supports Claude, OpenAI, and Ollama APIs
 
-**LLM Backends**
-- **Claude** (Anthropic) — configurable model selection
-- **ChatGPT** (OpenAI) — configurable model selection
-- **Ollama** (local) — browse and select from installed models, no API key needed
+All your data is encrypted with AES-256-GCM — your API keys and Strava tokens are safe.
 
-**Context Engine**
-- Assembles athlete profile, recent training load summary, and pinned insights into every prompt
-- Token-budget-aware: compresses older summaries, never drops pinned insights
-- Ensures the LLM always has relevant context without exceeding limits
-
-**Additional**
-- Activity dashboard with recent runs
-- FIT file import for manual uploads (Garmin, Wahoo, etc.)
-- First-run onboarding wizard for initial setup
-- Athlete profile management (age, max HR, threshold pace, goals, injury history)
-- AES-256-GCM encryption for all API keys and OAuth tokens
-- SQLite-based — fully local, no cloud dependency, data stays on your machine
-
-## Tech Stack
-
-- **Backend**: Go 1.24, [Wails v2](https://wails.io) (desktop framework)
-- **Frontend**: Svelte + TypeScript + Vite
-- **Database**: SQLite (via modernc.org/sqlite, pure Go)
-- **LLM**: Claude API, OpenAI API, Ollama (local)
+---
 
 ## Building from source
 
-### Prerequisites
-
-- Go 1.24+
-- Node.js 20+
-- npm
-- Wails CLI v2: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
-- **Linux**: `libgtk-3-dev` and `libwebkit2gtk-4.1-dev` (or 4.0)
-
-### Build
+If you're a developer and want to build it yourself:
 
 ```bash
 git clone https://github.com/Alchaph/coachlm-vibe.git
@@ -83,48 +105,12 @@ cd coachlm-vibe
 make build
 ```
 
-Or without Make:
+You'll need:
+- Go 1.24+
+- Node.js 20+
+- Wails CLI: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
 
-```bash
-wails build                    # webkit2gtk-4.0
-wails build -tags webkit2_41   # webkit2gtk-4.1
-```
-
-Output binary: `build/bin/coachlm`
-
-### Development
-
-```bash
-make dev
-```
-
-### Run tests
-
-```bash
-go test ./...
-```
-
-## Project Structure
-
-```
-├── app.go                # Wails app bindings
-├── main.go               # Entry point
-├── wails.json            # Wails build configuration
-├── internal/
-│   ├── strava/           # Strava OAuth, webhook, activity sync
-│   ├── storage/          # SQLite layer (activities, chat, settings, tokens, profiles)
-│   ├── context/          # Context engine + prompt assembler
-│   ├── llm/              # LLM router (Claude / OpenAI / Ollama)
-│   └── fit/              # FIT file parser
-├── frontend/             # Svelte frontend (Chat, Dashboard, Settings, Onboarding)
-├── build/                # Build assets (icons, platform configs)
-├── stories/              # Feature stories (spec + status tracking)
-└── .github/workflows/    # CI + release pipelines
-```
-
-## Configuration
-
-On first launch, the onboarding wizard guides you through initial setup. CoachLM defaults to local Ollama if no API keys are configured. LLM backends and Strava OAuth credentials can be changed at any time through the Settings tab.
+---
 
 ## License
 
