@@ -1,7 +1,7 @@
 ---
 id: S38
 title: Custom scrollbar styling for dark theme
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
