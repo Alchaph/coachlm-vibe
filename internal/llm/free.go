@@ -14,6 +14,9 @@ import (
 const (
 	defaultFreeModel   = "gemini-2.0-flash"
 	defaultFreeBaseURL = "https://generativelanguage.googleapis.com"
+	// Built-in free tier API key - should be injected at build time with -ldflags
+	// This is a placeholder; in production builds, use: -ldflags "-X coachlm/internal/llm.builtinFreeApiKey=YOUR_KEY"
+	builtinFreeApiKey = ""
 )
 
 type FreeConfig struct {
@@ -37,8 +40,12 @@ func NewFree(config FreeConfig) (*Free, error) {
 	if config.APIKey == "" {
 		config.APIKey = os.Getenv("GEMINI_API_KEY")
 	}
+	// Fall back to built-in key if available
+	if config.APIKey == "" && builtinFreeApiKey != "" {
+		config.APIKey = builtinFreeApiKey
+	}
 	if config.APIKey == "" {
-		return nil, errors.New("free: API key is required (set GEMINI_API_KEY env var or build with key)")
+		return nil, errors.New("free: API key is required for Gemini backend. Please set GEMINI_API_KEY environment variable, or switch to Claude, OpenAI, or Ollama backend")
 	}
 	return &Free{
 		config: config,

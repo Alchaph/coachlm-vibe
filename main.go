@@ -37,7 +37,8 @@ func main() {
 
 	llmClient, err := createLLMClient(db)
 	if err != nil {
-		log.Fatalf("create LLM client: %v", err)
+		log.Printf("Warning: %v", err)
+		llmClient = nil
 	}
 
 	app := NewApp(db, llmClient)
@@ -73,7 +74,7 @@ func createLLMClient(db *storage.DB) (llm.LLM, error) {
 	case "free":
 		client, err := llm.NewFree(llm.FreeConfig{})
 		if err != nil {
-			return nil, fmt.Errorf("create free LLM: %w", err)
+			return nil, fmt.Errorf("free LLM initialization failed: %w. Please set GEMINI_API_KEY environment variable, or switch to a different LLM backend in Settings", err)
 		}
 		return client, nil
 	case "claude":

@@ -31,7 +31,7 @@ func validateSettings(s *Settings) error {
 		return errors.New("settings is nil")
 	}
 	if !validLLMs[s.ActiveLLM] {
-		return fmt.Errorf("active_llm must be one of claude, openai, local; got %q", s.ActiveLLM)
+		return fmt.Errorf("active_llm must be one of claude, openai, local, free; got %q", s.ActiveLLM)
 	}
 	return nil
 }
