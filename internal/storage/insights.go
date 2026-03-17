@@ -116,3 +116,27 @@ func (db *DB) InsightExists(content string) (bool, error) {
 
 	return count > 0, nil
 }
+
+// ReplaceAllContext deletes all context data (profile, activities, insights) but keeps settings.
+// Used for "replace all" import mode.
+func (db *DB) ReplaceAllContext() error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+
+	_, err := db.conn.Exec(`DELETE FROM athlete_profile WHERE id = 1`)
+	if err != nil {
+		return fmt.Errorf("delete profile: %w", err)
+	}
+
+	_, err = db.conn.Exec(`DELETE FROM activities`)
+	if err != nil {
+		return fmt.Errorf("delete activities: %w", err)
+	}
+
+	_, err = db.conn.Exec(`DELETE FROM pinned_insights`)
+	if err != nil {
+		return fmt.Errorf("delete insights: %w", err)
+	}
+
+	return nil
+}

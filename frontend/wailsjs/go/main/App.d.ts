@@ -6,6 +6,8 @@ export function DeletePinnedInsight(arg1:number):Promise<void>;
 
 export function DisconnectStrava():Promise<void>;
 
+export function ExportContext(arg1:string):Promise<void>;
+
 export function GetActivityStats():Promise<main.StatsData>;
 
 export function GetContextPreview():Promise<string>;
@@ -21,6 +23,8 @@ export function GetRecentActivities(arg1:number):Promise<Array<main.ActivityReco
 export function GetSettingsData():Promise<main.SettingsData>;
 
 export function GetStravaAuthStatus():Promise<Record<string, any>>;
+
+export function ImportContext(arg1:string,arg2:boolean):Promise<void>;
 
 export function ImportFITFile(arg1:string):Promise<void>;
 

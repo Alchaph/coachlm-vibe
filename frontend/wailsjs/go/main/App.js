@@ -10,6 +10,10 @@ export function DisconnectStrava() {
   return window['go']['main']['App']['DisconnectStrava']();
 }
 
+export function ExportContext(arg1) {
+  return window['go']['main']['App']['ExportContext'](arg1);
+}
+
 export function GetActivityStats() {
   return window['go']['main']['App']['GetActivityStats']();
 }
@@ -40,6 +44,10 @@ export function GetSettingsData() {
 
 export function GetStravaAuthStatus() {
   return window['go']['main']['App']['GetStravaAuthStatus']();
+}
+
+export function ImportContext(arg1, arg2) {
+  return window['go']['main']['App']['ImportContext'](arg1, arg2);
 }
 
 export function ImportFITFile(arg1) {

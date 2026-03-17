@@ -13,6 +13,7 @@ import (
 	"time"
 
 	coachctx "coachlm/internal/context"
+	"coachlm/internal/exportimport"
 	"coachlm/internal/fit"
 	"coachlm/internal/llm"
 	"coachlm/internal/storage"
@@ -590,4 +591,12 @@ func (a *App) ImportFITFile(filePath string) error {
 	}
 
 	return nil
+}
+
+func (a *App) ExportContext(filePath string) error {
+	return exportimport.Export(a.db, filePath)
+}
+
+func (a *App) ImportContext(filePath string, replaceAll bool) error {
+	return exportimport.Import(a.db, filePath, replaceAll)
 }

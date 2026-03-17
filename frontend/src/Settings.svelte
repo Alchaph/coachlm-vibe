@@ -6,7 +6,9 @@
     GetStravaAuthStatus,
     StartStravaAuth,
     DisconnectStrava,
-    GetOllamaModels
+    GetOllamaModels,
+    ExportContext,
+    ImportContext
   } from '../wailsjs/go/main/App.js'
 
   let activeLlm = 'free'
@@ -56,6 +58,38 @@
     feedbackType = type
     if (feedbackTimer) clearTimeout(feedbackTimer)
     feedbackTimer = setTimeout(() => { feedback = '' }, 3000)
+  }
+
+  async function exportContext() {
+    try {
+      await ExportContext()
+      showFeedback('Context exported successfully', 'success')
+    } catch (e: any) {
+      showFeedback(e?.message || 'Failed to export context', 'error')
+    }
+  }
+
+  async function importContext() {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.coachctx'
+    input.onchange = async (e: Event) => {
+      const target = e.target as HTMLInputElement
+      const file = target.files?.[0]
+      if (!file) return
+
+      try {
+        const confirmReplace = confirm('Do you want to replace all existing context data? Click Cancel to merge instead.')
+        await ImportContext(file, confirmReplace)
+        showFeedback('Context imported successfully', 'success')
+        setTimeout(async () => {
+          await loadSettings()
+        }, 100)
+      } catch (e: any) {
+        showFeedback(e?.message || 'Failed to import context', 'error')
+      }
+    }
+    input.click()
   }
 
   onMount(async () => {
@@ -271,6 +305,17 @@
             {connectingStrava ? 'Connecting...' : 'Connect Strava'}
           </button>
         {/if}
+      </div>
+    </section>
+
+    <section>
+      <h2>Context Data</h2>
+
+      <p class="field-note">Export your full coaching context to a file or import from a backup.</p>
+
+      <div class="context-actions">
+        <button class="btn btn-secondary" on:click={exportContext}>Export Context</button>
+        <button class="btn btn-secondary" on:click={importContext}>Import Context</button>
       </div>
     </section>
 
