@@ -23,6 +23,7 @@ var validLLMs = map[string]bool{
 	"claude": true,
 	"openai": true,
 	"local":  true,
+	"free":   true,
 }
 
 func validateSettings(s *Settings) error {

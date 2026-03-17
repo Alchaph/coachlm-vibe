@@ -3,7 +3,7 @@ id: S34
 title: Free cloud LLM backend for zero-setup onboarding
 status: done
 created: 2026-03-16
-updated: 2026-03-16
+updated: 2026-03-17
 ---
 
 # S34 — Free cloud LLM backend for zero-setup onboarding
@@ -64,6 +64,7 @@ Today every LLM backend requires setup: Claude and OpenAI need paid API keys; Ol
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-17 | done | Bug fix: added "free" to validLLMs map in settings.go |
 
 ---
 
