@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte'
-  import { GetRecentActivities, GetStravaAuthStatus, SyncStravaActivities } from '../wailsjs/go/main/App.js'
+  import { GetRecentActivities, GetStravaAuthStatus, SyncStravaActivities, GetActivityStats } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
 
   interface Activity {
@@ -23,24 +23,36 @@
   let syncResult = ''
   let syncResultTimer: ReturnType<typeof setTimeout> | null = null
   let contextSummary = ''
+  let stats: {totalCount: number, totalDistanceKm: number, earliestDate: string, latestDate: string} | null = null
 
   let unsubStart: (() => void) | null = null
   let unsubProgress: (() => void) | null = null
   let unsubComplete: (() => void) | null = null
   let unsubError: (() => void) | null = null
   let unsubContextReady: (() => void) | null = null
+  let unsubStats: (() => void) | null = null
 
   async function loadActivities() {
     activities = await GetRecentActivities(20)
   }
 
+  async function loadStats() {
+    try {
+      stats = await GetActivityStats()
+    } catch (e: any) {
+      console.error('Failed to load stats:', e)
+    }
+  }
+
   onMount(async () => {
     try {
-      const [, status] = await Promise.all([
+      const [, status, s] = await Promise.all([
         loadActivities().catch(() => {}),
-        GetStravaAuthStatus().catch(() => null)
+        GetStravaAuthStatus().catch(() => null),
+        loadStats().catch(() => {})
       ])
       if (status) stravaConnected = !!status.connected
+      if (s) stats = s
     } catch (e: any) {
       error = e?.message || String(e) || 'Failed to load activities'
     } finally {
@@ -66,7 +78,12 @@
       syncResult = saved > 0 ? `Synced ${saved} new activities (${total} total)` : `Up to date (${total} activities)`
       if (syncResultTimer) clearTimeout(syncResultTimer)
       syncResultTimer = setTimeout(() => { syncResult = '' }, 5000)
-      try { await loadActivities() } catch (_) {}
+      try {
+        await Promise.all([
+          loadActivities().catch(() => {}),
+          loadStats().catch(() => {})
+        ])
+      } catch (_) {}
     })
 
     unsubError = EventsOn("strava:sync:error", (msg: any) => {
@@ -156,14 +173,33 @@
       {#if contextSummary}
         <span class="context-summary">{contextSummary}</span>
       {/if}
-    </div>
-  {/if}
+     </div>
+   {/if}
 
-  {#if loading}
-    <div class="state-msg">
-      <div class="spinner"></div>
-      <p>Loading activities...</p>
-    </div>
+   {#if stats && stats.totalCount > 0}
+     <div class="stats-bar">
+       <div class="stat-item">
+         <span class="stat-label">Activities</span>
+         <span class="stat-value">{stats.totalCount}</span>
+       </div>
+       <div class="stat-divider"></div>
+       <div class="stat-item">
+         <span class="stat-label">Total</span>
+         <span class="stat-value">{stats.totalDistanceKm.toFixed(1)} km</span>
+       </div>
+       <div class="stat-divider"></div>
+       <div class="stat-item">
+         <span class="stat-label">Date Range</span>
+         <span class="stat-value">{stats.earliestDate} → {stats.latestDate}</span>
+       </div>
+     </div>
+   {/if}
+
+   {#if loading}
+     <div class="state-msg">
+       <div class="spinner"></div>
+       <p>Loading activities...</p>
+     </div>
   {:else if error}
     <div class="state-msg error">
       <p>{error}</p>
@@ -371,5 +407,40 @@
   .context-summary {
     font-size: 0.8rem;
     color: #22c55e;
+  }
+
+  .stats-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 8px 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 16px;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+  }
+
+  .stat-value {
+    font-size: 0.85rem;
+    color: #e2e8f0;
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255, 255, 255, 0.1);
   }
 </style>

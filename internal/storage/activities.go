@@ -23,6 +23,13 @@ type Activity struct {
 	CreatedAt    time.Time
 }
 
+type ActivityStats struct {
+	TotalCount      int
+	TotalDistanceKm float64
+	EarliestDate    string
+	LatestDate      string
+}
+
 // SaveActivity uses INSERT OR IGNORE to deduplicate on strava_id.
 func (db *DB) SaveActivity(activity *Activity) error {
 	if activity == nil {
@@ -130,4 +137,32 @@ func (db *DB) ListActivities(limit, offset int) ([]Activity, error) {
 		return nil, fmt.Errorf("iterate activities: %w", err)
 	}
 	return activities, nil
+}
+
+// GetActivityStats returns aggregate statistics about all stored activities.
+func (db *DB) GetActivityStats() (*ActivityStats, error) {
+	db.mu.RLock()
+	defer db.mu.RUnlock()
+
+	var stats ActivityStats
+	var earliest, latest string
+
+	err := db.conn.QueryRow(`
+		SELECT COUNT(*), COALESCE(SUM(distance), 0),
+		       IFNULL(SUBSTR(MIN(start_date), 1, 10), ''),
+		       IFNULL(SUBSTR(MAX(start_date), 1, 10), '')
+		FROM activities`).Scan(
+		&stats.TotalCount,
+		&stats.TotalDistanceKm,
+		&earliest,
+		&latest,
+	)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("get activity stats: %w", err)
+	}
+
+	stats.EarliestDate = earliest
+	stats.LatestDate = latest
+
+	return &stats, nil
 }

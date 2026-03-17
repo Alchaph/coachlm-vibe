@@ -5,7 +5,8 @@
     SaveProfileData,
     GetPinnedInsights,
     DeletePinnedInsight,
-    GetRecentActivities
+    GetRecentActivities,
+    GetActivityStats
   } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
 
@@ -41,6 +42,7 @@
   let feedbackType: 'success' | 'error' = 'success'
   let feedbackTimer: ReturnType<typeof setTimeout> | null = null
   let unsubContextReady: (() => void) | null = null
+  let activityCount = 0
 
   function showFeedback(msg: string, type: 'success' | 'error') {
     feedback = msg
@@ -49,12 +51,24 @@
     feedbackTimer = setTimeout(() => { feedback = '' }, 3000)
   }
 
+  async function loadStats() {
+    try {
+      const stats = await GetActivityStats()
+      if (stats) {
+        activityCount = stats.totalCount || 0
+      }
+    } catch (e: any) {
+      console.error('Failed to load stats:', e)
+    }
+  }
+
   onMount(async () => {
     try {
-      const [profile, insightList, activityList] = await Promise.all([
+      const [profile, insightList, activityList, stats] = await Promise.all([
         GetProfileData(),
         GetPinnedInsights(),
-        GetRecentActivities(10)
+        GetRecentActivities(10),
+        loadStats().catch(() => null)
       ])
 
       if (profile) {
@@ -75,6 +89,7 @@
 
       insights = insightList || []
       activities = activityList || []
+      if (stats) activityCount = stats.totalCount || 0
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to load context data', 'error')
     } finally {
@@ -83,10 +98,11 @@
 
     unsubContextReady = EventsOn("strava:sync:context-ready", async () => {
       try {
-        const [profile, insightList, activityList] = await Promise.all([
+        const [profile, insightList, activityList, stats] = await Promise.all([
           GetProfileData(),
           GetPinnedInsights(),
-          GetRecentActivities(10)
+          GetRecentActivities(10),
+          loadStats().catch(() => null)
         ])
 
         if (profile) {
@@ -107,6 +123,7 @@
 
         insights = insightList || []
         activities = activityList || []
+        if (stats) activityCount = stats.totalCount || 0
         showFeedback('Context updated after sync', 'success')
       } catch (_) {}
     })
@@ -282,7 +299,7 @@
     </section>
 
     <section>
-      <h2>Training Summary</h2>
+      <h2>Training Summary {#if activityCount > 0}({activityCount} activities){/if}</h2>
       {#if activities.length === 0}
         <p class="empty-text">No activities yet. Sync Strava or import a FIT file to see your training here.</p>
       {:else}

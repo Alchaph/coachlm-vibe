@@ -169,6 +169,29 @@ func (a *App) GetRecentActivities(limit int) ([]ActivityRecord, error) {
 	return records, nil
 }
 
+type StatsData struct {
+	TotalCount      int     `json:"totalCount"`
+	TotalDistanceKm float64 `json:"totalDistanceKm"`
+	EarliestDate    string  `json:"earliestDate"`
+	LatestDate      string  `json:"latestDate"`
+}
+
+func (a *App) GetActivityStats() (*StatsData, error) {
+	stats, err := a.db.GetActivityStats()
+	if err != nil {
+		return nil, fmt.Errorf("get activity stats: %w", err)
+	}
+	if stats == nil {
+		return &StatsData{}, nil
+	}
+	return &StatsData{
+		TotalCount:      stats.TotalCount,
+		TotalDistanceKm: stats.TotalDistanceKm / 1000.0,
+		EarliestDate:    stats.EarliestDate,
+		LatestDate:      stats.LatestDate,
+	}, nil
+}
+
 func (a *App) GetSettingsData() (*SettingsData, error) {
 	s, err := a.db.GetSettings()
 	if err != nil {

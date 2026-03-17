@@ -157,3 +157,116 @@ func TestListActivitiesEmpty(t *testing.T) {
 		t.Errorf("expected nil for empty list, got %d activities", len(got))
 	}
 }
+
+func TestGetActivityStatsEmpty(t *testing.T) {
+	db := newTestDB(t)
+
+	stats, err := db.GetActivityStats()
+	if err != nil {
+		t.Fatalf("GetActivityStats: %v", err)
+	}
+	if stats.TotalCount != 0 {
+		t.Errorf("TotalCount = %d, want 0", stats.TotalCount)
+	}
+	if stats.TotalDistanceKm != 0 {
+		t.Errorf("TotalDistanceKm = %f, want 0", stats.TotalDistanceKm)
+	}
+	if stats.EarliestDate != "" {
+		t.Errorf("EarliestDate = %q, want empty", stats.EarliestDate)
+	}
+	if stats.LatestDate != "" {
+		t.Errorf("LatestDate = %q, want empty", stats.LatestDate)
+	}
+}
+
+func TestGetActivityStatsMultiple(t *testing.T) {
+	db := newTestDB(t)
+
+	activities := []Activity{
+		{StravaID: 1, Name: "Run 1", StartDate: time.Date(2026, 1, 10, 0, 0, 0, 0, time.UTC), Distance: 5000.0, DurationSecs: 1800, Source: "strava"},
+		{StravaID: 2, Name: "Run 2", StartDate: time.Date(2026, 2, 15, 0, 0, 0, 0, time.UTC), Distance: 10000.0, DurationSecs: 3600, Source: "strava"},
+		{StravaID: 3, Name: "Run 3", StartDate: time.Date(2026, 3, 20, 0, 0, 0, 0, time.UTC), Distance: 7500.0, DurationSecs: 2700, Source: "strava"},
+	}
+	for i := range activities {
+		if err := db.SaveActivity(&activities[i]); err != nil {
+			t.Fatalf("SaveActivity %d: %v", i, err)
+		}
+	}
+
+	stats, err := db.GetActivityStats()
+	if err != nil {
+		t.Fatalf("GetActivityStats: %v", err)
+	}
+	if stats.TotalCount != 3 {
+		t.Errorf("TotalCount = %d, want 3", stats.TotalCount)
+	}
+	if stats.TotalDistanceKm != 22500.0 {
+		t.Errorf("TotalDistanceKm = %f, want 22500.0", stats.TotalDistanceKm)
+	}
+	if stats.EarliestDate != "2026-01-10" {
+		t.Errorf("EarliestDate = %q, want 2026-01-10", stats.EarliestDate)
+	}
+	if stats.LatestDate != "2026-03-20" {
+		t.Errorf("LatestDate = %q, want 2026-03-20", stats.LatestDate)
+	}
+}
+
+func TestGetActivityStatsSingle(t *testing.T) {
+	db := newTestDB(t)
+
+	activity := &Activity{
+		StravaID:     1,
+		Name:         "Solo Run",
+		StartDate:    time.Date(2026, 5, 5, 0, 0, 0, 0, time.UTC),
+		Distance:     8000.0,
+		DurationSecs: 3000,
+		Source:       "strava",
+	}
+	if err := db.SaveActivity(activity); err != nil {
+		t.Fatalf("SaveActivity: %v", err)
+	}
+
+	stats, err := db.GetActivityStats()
+	if err != nil {
+		t.Fatalf("GetActivityStats: %v", err)
+	}
+	if stats.TotalCount != 1 {
+		t.Errorf("TotalCount = %d, want 1", stats.TotalCount)
+	}
+	if stats.TotalDistanceKm != 8000.0 {
+		t.Errorf("TotalDistanceKm = %f, want 8000.0", stats.TotalDistanceKm)
+	}
+	if stats.EarliestDate != "2026-05-05" {
+		t.Errorf("EarliestDate = %q, want 2026-05-05", stats.EarliestDate)
+	}
+	if stats.LatestDate != "2026-05-05" {
+		t.Errorf("LatestDate = %q, want 2026-05-05", stats.LatestDate)
+	}
+}
+
+func TestGetActivityStatsZeroDistance(t *testing.T) {
+	db := newTestDB(t)
+
+	activity := &Activity{
+		StravaID:     1,
+		Name:         "Treadmill Run",
+		StartDate:    time.Date(2026, 6, 1, 0, 0, 0, 0, time.UTC),
+		Distance:     0,
+		DurationSecs: 1800,
+		Source:       "strava",
+	}
+	if err := db.SaveActivity(activity); err != nil {
+		t.Fatalf("SaveActivity: %v", err)
+	}
+
+	stats, err := db.GetActivityStats()
+	if err != nil {
+		t.Fatalf("GetActivityStats: %v", err)
+	}
+	if stats.TotalCount != 1 {
+		t.Errorf("TotalCount = %d, want 1", stats.TotalCount)
+	}
+	if stats.TotalDistanceKm != 0 {
+		t.Errorf("TotalDistanceKm = %f, want 0 for zero-distance activity", stats.TotalDistanceKm)
+	}
+}

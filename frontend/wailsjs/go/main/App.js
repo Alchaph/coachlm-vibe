@@ -10,6 +10,10 @@ export function DisconnectStrava() {
   return window['go']['main']['App']['DisconnectStrava']();
 }
 
+export function GetActivityStats() {
+  return window['go']['main']['App']['GetActivityStats']();
+}
+
 export function GetContextPreview() {
   return window['go']['main']['App']['GetContextPreview']();
 }

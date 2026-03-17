@@ -100,6 +100,24 @@ export namespace main {
 	        this.ollamaModel = source["ollamaModel"];
 	    }
 	}
+	export class StatsData {
+	    totalCount: number;
+	    totalDistanceKm: number;
+	    earliestDate: string;
+	    latestDate: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new StatsData(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.totalCount = source["totalCount"];
+	        this.totalDistanceKm = source["totalDistanceKm"];
+	        this.earliestDate = source["earliestDate"];
+	        this.latestDate = source["latestDate"];
+	    }
+	}
 
 }
 
