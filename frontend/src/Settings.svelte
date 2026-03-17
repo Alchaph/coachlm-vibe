@@ -23,6 +23,7 @@
   let claudeModel = ''
   let openaiModel = ''
   let ollamaModel = ''
+  let customSystemPrompt = ''
 
   let stravaConnected = false
   let loading = true
@@ -120,6 +121,7 @@
         claudeModel = settings.claudeModel || ''
         openaiModel = settings.openaiModel || ''
         ollamaModel = settings.ollamaModel || ''
+        customSystemPrompt = settings.customSystemPrompt || ''
       }
 
       if (status) {
@@ -147,6 +149,7 @@
         claudeModel = settings.claudeModel || ''
         openaiModel = settings.openaiModel || ''
         ollamaModel = settings.ollamaModel || ''
+        customSystemPrompt = settings.customSystemPrompt || ''
       }
 
       if (status) {
@@ -171,7 +174,8 @@
         stravaClientSecret,
         claudeModel,
         openaiModel,
-        ollamaModel
+        ollamaModel,
+        customSystemPrompt
       })
       showFeedback('Settings saved!', 'success')
     } catch (e: any) {
@@ -193,7 +197,8 @@
         stravaClientSecret,
         claudeModel,
         openaiModel,
-        ollamaModel
+        ollamaModel,
+        customSystemPrompt
       })
       await StartStravaAuth()
       const status = await GetStravaAuthStatus()
@@ -305,6 +310,19 @@
           </div>
         {/if}
       {/if}
+    </section>
+
+    <section>
+      <h2>Custom Instructions</h2>
+
+      <label class="field-label" for="custom-system-prompt">Additional System Prompt</label>
+      <textarea
+        id="custom-system-prompt"
+        bind:value={customSystemPrompt}
+        rows="4"
+        placeholder="Add your own instructions, e.g., 'Always respond in German' or 'Never suggest supplements' or 'Always give pace in min/km'"
+      ></textarea>
+      <p class="field-note">Appended to the coaching prompt. Leave blank for default behavior.</p>
     </section>
 
     <section>
@@ -456,7 +474,8 @@
 
   select,
   input[type="text"],
-  input[type="password"] {
+  input[type="password"],
+  textarea {
     width: 100%;
     padding: 10px 14px;
     background: rgba(255, 255, 255, 0.08);
@@ -470,8 +489,15 @@
   }
 
   select:focus,
-  input:focus {
+  input:focus,
+  textarea:focus {
     border-color: #3b82f6;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+    box-sizing: border-box;
   }
 
   select {

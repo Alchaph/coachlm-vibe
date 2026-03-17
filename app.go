@@ -60,6 +60,7 @@ type SettingsData struct {
 	ClaudeModel        string `json:"claudeModel"`
 	OpenAIModel        string `json:"openaiModel"`
 	OllamaModel        string `json:"ollamaModel"`
+	CustomSystemPrompt string `json:"customSystemPrompt"`
 }
 
 func NewApp(db *storage.DB, llmClient llm.LLM) *App {
@@ -92,12 +93,19 @@ func (a *App) SendMessage(message string) (string, error) {
 	profile, _ := a.db.GetProfile()
 	activities, _ := a.db.ListActivities(28, 0)
 	insights, _ := a.db.GetInsights()
+	settings, _ := a.db.GetSettings()
+
+	customPrompt := ""
+	if settings != nil {
+		customPrompt = settings.CustomSystemPrompt
+	}
 
 	systemPrompt := coachctx.AssemblePrompt(coachctx.PromptInput{
-		Profile:    profile,
-		Activities: activities,
-		Insights:   insights,
-		Now:        time.Now(),
+		Profile:      profile,
+		Activities:   activities,
+		Insights:     insights,
+		CustomPrompt: customPrompt,
+		Now:          time.Now(),
 	}, coachctx.DefaultPromptConfig())
 
 	history, _ := a.db.GetMessages(a.sessionID)
@@ -211,6 +219,7 @@ func (a *App) GetSettingsData() (*SettingsData, error) {
 		ClaudeModel:        s.ClaudeModel,
 		OpenAIModel:        s.OpenAIModel,
 		OllamaModel:        s.OllamaModel,
+		CustomSystemPrompt: s.CustomSystemPrompt,
 	}, nil
 }
 
@@ -225,12 +234,15 @@ func (a *App) SaveSettingsData(data SettingsData) error {
 		ClaudeModel:        data.ClaudeModel,
 		OpenAIModel:        data.OpenAIModel,
 		OllamaModel:        data.OllamaModel,
+		CustomSystemPrompt: data.CustomSystemPrompt,
 	}
 	if err := a.db.SaveSettings(s); err != nil {
 		return fmt.Errorf("save settings: %w", err)
 	}
 	if err := a.reloadLLMClient(); err != nil {
-		return fmt.Errorf("reload LLM after save: %w", err)
+		// Log but don't fail — settings were saved successfully.
+		// The LLM may fail later at chat time (e.g., free backend with no API key).
+		fmt.Printf("Warning: LLM reload after settings save: %v\n", err)
 	}
 	return nil
 }
@@ -413,12 +425,19 @@ func (a *App) GetContextPreview() (string, error) {
 	profile, _ := a.db.GetProfile()
 	activities, _ := a.db.ListActivities(28, 0)
 	insights, _ := a.db.GetInsights()
+	settings, _ := a.db.GetSettings()
+
+	customPrompt := ""
+	if settings != nil {
+		customPrompt = settings.CustomSystemPrompt
+	}
 
 	prompt := coachctx.AssemblePrompt(coachctx.PromptInput{
-		Profile:    profile,
-		Activities: activities,
-		Insights:   insights,
-		Now:        time.Now(),
+		Profile:      profile,
+		Activities:   activities,
+		Insights:     insights,
+		CustomPrompt: customPrompt,
+		Now:          time.Now(),
 	}, coachctx.DefaultPromptConfig())
 
 	return prompt, nil
