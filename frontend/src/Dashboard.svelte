@@ -36,11 +36,12 @@
     activities = await GetRecentActivities(20)
   }
 
-  async function loadStats() {
+  async function loadStats(): Promise<{totalCount: number, totalDistanceKm: number, earliestDate: string, latestDate: string} | null> {
     try {
-      stats = await GetActivityStats()
+      return await GetActivityStats()
     } catch (e: any) {
       console.error('Failed to load stats:', e)
+      return null
     }
   }
 
@@ -52,7 +53,7 @@
         loadStats().catch(() => {})
       ])
       if (status) stravaConnected = !!status.connected
-      if (s) stats = s
+      if (s && typeof s === 'object') stats = s
     } catch (e: any) {
       error = e?.message || String(e) || 'Failed to load activities'
     } finally {
