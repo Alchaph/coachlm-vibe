@@ -1,7 +1,7 @@
 ---
 id: S46
 title: Fix free AI (Gemini) backend saving
-status: draft
+status: done
 created: 2026-03-17
 updated: 2026-03-17
 ---
