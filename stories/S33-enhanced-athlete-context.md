@@ -1,7 +1,7 @@
 ---
 id: S33
 title: Enhanced athlete context and pace input
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---

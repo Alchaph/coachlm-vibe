@@ -89,6 +89,11 @@ var migrations = []string{
 	`ALTER TABLE settings ADD COLUMN claude_model TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE settings ADD COLUMN openai_model TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE settings ADD COLUMN ollama_model TEXT NOT NULL DEFAULT ''`,
+
+	`ALTER TABLE athlete_profile ADD COLUMN experience_level TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE athlete_profile ADD COLUMN training_days_per_week INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE athlete_profile ADD COLUMN resting_hr INTEGER NOT NULL DEFAULT 0`,
+	`ALTER TABLE athlete_profile ADD COLUMN preferred_terrain TEXT NOT NULL DEFAULT ''`,
 }
 
 func (db *DB) migrate() error {

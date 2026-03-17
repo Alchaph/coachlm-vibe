@@ -16,6 +16,10 @@ type AthleteProfile struct {
 	WeeklyMileageTarget float64
 	RaceGoals           string
 	InjuryHistory       string
+	ExperienceLevel     string
+	TrainingDaysPerWeek int
+	RestingHR           int
+	PreferredTerrain    string
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 }
@@ -49,15 +53,19 @@ func (db *DB) SaveProfile(profile *AthleteProfile) error {
 
 	_, err := db.conn.Exec(`
 		INSERT OR REPLACE INTO athlete_profile
-			(id, age, max_hr, threshold_pace_secs, weekly_mileage_target, race_goals, injury_history, created_at, updated_at)
+			(id, age, max_hr, threshold_pace_secs, weekly_mileage_target, race_goals, injury_history, experience_level, training_days_per_week, resting_hr, preferred_terrain, created_at, updated_at)
 		VALUES
-			(1, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM athlete_profile WHERE id = 1), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)`,
+			(1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM athlete_profile WHERE id = 1), CURRENT_TIMESTAMP), CURRENT_TIMESTAMP)`,
 		profile.Age,
 		profile.MaxHR,
 		profile.ThresholdPaceSecs,
 		profile.WeeklyMileageTarget,
 		profile.RaceGoals,
 		profile.InjuryHistory,
+		profile.ExperienceLevel,
+		profile.TrainingDaysPerWeek,
+		profile.RestingHR,
+		profile.PreferredTerrain,
 	)
 	if err != nil {
 		return fmt.Errorf("save profile: %w", err)
@@ -74,7 +82,8 @@ func (db *DB) GetProfile() (*AthleteProfile, error) {
 	p := &AthleteProfile{}
 	err := db.conn.QueryRow(`
 		SELECT age, max_hr, threshold_pace_secs, weekly_mileage_target,
-		       race_goals, injury_history, created_at, updated_at
+		       race_goals, injury_history, experience_level, training_days_per_week,
+		       resting_hr, preferred_terrain, created_at, updated_at
 		FROM athlete_profile
 		WHERE id = 1`).Scan(
 		&p.Age,
@@ -83,6 +92,10 @@ func (db *DB) GetProfile() (*AthleteProfile, error) {
 		&p.WeeklyMileageTarget,
 		&p.RaceGoals,
 		&p.InjuryHistory,
+		&p.ExperienceLevel,
+		&p.TrainingDaysPerWeek,
+		&p.RestingHR,
+		&p.PreferredTerrain,
 		&p.CreatedAt,
 		&p.UpdatedAt,
 	)

@@ -11,10 +11,15 @@
 
   let age = 0
   let maxHR = 0
+  let thresholdPaceMins = 0
   let thresholdPaceSecs = 0
   let weeklyMileageTarget = 0
   let raceGoals = ''
   let injuryHistory = ''
+  let experienceLevel = ''
+  let trainingDaysPerWeek = 0
+  let restingHR = 0
+  let preferredTerrain = ''
   let profileLoaded = false
 
   let insights: Array<{id: number, content: string, sourceSessionId: string, createdAt: string}> = []
@@ -55,10 +60,16 @@
       if (profile) {
         age = profile.age || 0
         maxHR = profile.maxHR || 0
-        thresholdPaceSecs = profile.thresholdPaceSecs || 0
+        const paceSecs = profile.thresholdPaceSecs || 0
+        thresholdPaceMins = Math.floor(paceSecs / 60)
+        thresholdPaceSecs = paceSecs % 60
         weeklyMileageTarget = profile.weeklyMileageTarget || 0
         raceGoals = profile.raceGoals || ''
         injuryHistory = profile.injuryHistory || ''
+        experienceLevel = profile.experienceLevel || ''
+        trainingDaysPerWeek = profile.trainingDaysPerWeek || 0
+        restingHR = profile.restingHR || 0
+        preferredTerrain = profile.preferredTerrain || ''
         profileLoaded = true
       }
 
@@ -81,10 +92,16 @@
         if (profile) {
           age = profile.age || 0
           maxHR = profile.maxHR || 0
-          thresholdPaceSecs = profile.thresholdPaceSecs || 0
+          const paceSecs = profile.thresholdPaceSecs || 0
+          thresholdPaceMins = Math.floor(paceSecs / 60)
+          thresholdPaceSecs = paceSecs % 60
           weeklyMileageTarget = profile.weeklyMileageTarget || 0
           raceGoals = profile.raceGoals || ''
           injuryHistory = profile.injuryHistory || ''
+          experienceLevel = profile.experienceLevel || ''
+          trainingDaysPerWeek = profile.trainingDaysPerWeek || 0
+          restingHR = profile.restingHR || 0
+          preferredTerrain = profile.preferredTerrain || ''
           profileLoaded = true
         }
 
@@ -103,13 +120,18 @@
   async function saveProfile() {
     saving = true
     try {
+      const totalSecs = (thresholdPaceMins * 60) + thresholdPaceSecs
       await SaveProfileData({
         age,
         maxHR,
-        thresholdPaceSecs,
+        thresholdPaceSecs: totalSecs,
         weeklyMileageTarget,
         raceGoals,
-        injuryHistory
+        injuryHistory,
+        experienceLevel,
+        trainingDaysPerWeek,
+        restingHR,
+        preferredTerrain
       })
       profileLoaded = true
       showFeedback('Profile saved', 'success')
@@ -182,8 +204,12 @@
           <input type="number" bind:value={maxHR} placeholder="185" min="100" max="220" />
         </div>
         <div class="field">
-          <label class="field-label">Threshold Pace (sec/km)</label>
-          <input type="number" bind:value={thresholdPaceSecs} placeholder="300" min="1" />
+          <label class="field-label">Threshold Pace (/km)</label>
+          <div class="pace-input">
+            <input type="number" bind:value={thresholdPaceMins} placeholder="5" min="0" max="15" />
+            <span class="pace-sep">:</span>
+            <input type="number" bind:value={thresholdPaceSecs} placeholder="00" min="0" max="59" />
+          </div>
         </div>
         <div class="field">
           <label class="field-label">Weekly Mileage Target (km)</label>
@@ -196,6 +222,34 @@
         <div class="field full-width">
           <label class="field-label">Injury History</label>
           <textarea bind:value={injuryHistory} placeholder="e.g. IT band issues in 2024, fully recovered" rows="2"></textarea>
+        </div>
+        <div class="field">
+          <label class="field-label">Experience Level</label>
+          <select bind:value={experienceLevel}>
+            <option value=""></option>
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+            <option value="elite">Elite</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Training Days Per Week</label>
+          <input type="number" bind:value={trainingDaysPerWeek} placeholder="4" min="1" max="7" />
+        </div>
+        <div class="field">
+          <label class="field-label">Resting Heart Rate</label>
+          <input type="number" bind:value={restingHR} placeholder="50" min="30" max="120" />
+        </div>
+        <div class="field">
+          <label class="field-label">Preferred Terrain</label>
+          <select bind:value={preferredTerrain}>
+            <option value=""></option>
+            <option value="road">Road</option>
+            <option value="trail">Trail</option>
+            <option value="track">Track</option>
+            <option value="mixed">Mixed</option>
+          </select>
         </div>
       </div>
       <button class="btn btn-primary" on:click={saveProfile} disabled={saving}>
@@ -357,6 +411,7 @@
     font-weight: 600;
   }
 
+  select,
   input[type="number"],
   textarea {
     width: 100%;
@@ -516,5 +571,36 @@
 
   td.type {
     color: #94a3b8;
+  }
+
+  .pace-input {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .pace-input input {
+    flex: 1;
+    text-align: center;
+  }
+
+  .pace-sep {
+    color: #94a3b8;
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+
+  select {
+    appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  select option {
+    background: #1b2636;
+    color: white;
   }
 </style>

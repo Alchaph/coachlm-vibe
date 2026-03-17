@@ -35,6 +35,10 @@ type ProfileData struct {
 	WeeklyMileageTarget float64 `json:"weeklyMileageTarget"`
 	RaceGoals           string  `json:"raceGoals"`
 	InjuryHistory       string  `json:"injuryHistory"`
+	ExperienceLevel     string  `json:"experienceLevel"`
+	TrainingDaysPerWeek int     `json:"trainingDaysPerWeek"`
+	RestingHR           int     `json:"restingHR"`
+	PreferredTerrain    string  `json:"preferredTerrain"`
 }
 
 type InsightData struct {
@@ -331,6 +335,10 @@ func (a *App) GetProfileData() (*ProfileData, error) {
 		WeeklyMileageTarget: p.WeeklyMileageTarget,
 		RaceGoals:           p.RaceGoals,
 		InjuryHistory:       p.InjuryHistory,
+		ExperienceLevel:     p.ExperienceLevel,
+		TrainingDaysPerWeek: p.TrainingDaysPerWeek,
+		RestingHR:           p.RestingHR,
+		PreferredTerrain:    p.PreferredTerrain,
 	}, nil
 }
 
@@ -342,6 +350,10 @@ func (a *App) SaveProfileData(data ProfileData) error {
 		WeeklyMileageTarget: data.WeeklyMileageTarget,
 		RaceGoals:           data.RaceGoals,
 		InjuryHistory:       data.InjuryHistory,
+		ExperienceLevel:     data.ExperienceLevel,
+		TrainingDaysPerWeek: data.TrainingDaysPerWeek,
+		RestingHR:           data.RestingHR,
+		PreferredTerrain:    data.PreferredTerrain,
 	}
 	if err := a.db.SaveProfile(p); err != nil {
 		return fmt.Errorf("save profile: %w", err)

@@ -1,7 +1,7 @@
 ---
 id: S37
 title: Fix chat scroll jumping on pin
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---

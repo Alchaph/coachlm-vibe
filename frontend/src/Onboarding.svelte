@@ -32,6 +32,10 @@
   let profileWeeklyMileage = 0
   let profileRaceGoals = ''
   let profileInjuryHistory = ''
+  let profileExperienceLevel = ''
+  let profileTrainingDaysPerWeek = 0
+  let profileRestingHR = 0
+  let profilePreferredTerrain = ''
   let savingProfile = false
 
   // Context readiness (step 5)
@@ -101,9 +105,13 @@
         thresholdPaceSecs: totalSecs,
         weeklyMileageTarget: profileWeeklyMileage,
         raceGoals: profileRaceGoals,
-        injuryHistory: profileInjuryHistory
+        injuryHistory: profileInjuryHistory,
+        experienceLevel: profileExperienceLevel,
+        trainingDaysPerWeek: profileTrainingDaysPerWeek,
+        restingHR: profileRestingHR,
+        preferredTerrain: profilePreferredTerrain
       })
-      hasProfile = profileAge > 0 || profileMaxHR > 0 || totalSecs > 0 || profileWeeklyMileage > 0 || profileRaceGoals !== '' || profileInjuryHistory !== ''
+      hasProfile = profileAge > 0 || profileMaxHR > 0 || totalSecs > 0 || profileWeeklyMileage > 0 || profileRaceGoals !== '' || profileInjuryHistory !== '' || profileExperienceLevel !== '' || profileTrainingDaysPerWeek > 0 || profileRestingHR > 0 || profilePreferredTerrain !== ''
     } catch (e: any) {
       error = e?.message || 'Failed to save profile'
     } finally {
@@ -316,6 +324,38 @@
             <label class="field-label">Injury History</label>
             <textarea bind:value={profileInjuryHistory} placeholder="e.g. IT band issues in 2024, fully recovered" rows="2"></textarea>
           </div>
+          <div class="form-row">
+            <div class="field">
+              <label class="field-label">Experience Level</label>
+              <select bind:value={profileExperienceLevel}>
+                <option value=""></option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="elite">Elite</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label">Training Days/Week</label>
+              <input type="number" bind:value={profileTrainingDaysPerWeek} placeholder="4" min="1" max="7" />
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field">
+              <label class="field-label">Resting HR</label>
+              <input type="number" bind:value={profileRestingHR} placeholder="50" min="30" max="120" />
+            </div>
+            <div class="field">
+              <label class="field-label">Preferred Terrain</label>
+              <select bind:value={profilePreferredTerrain}>
+                <option value=""></option>
+                <option value="road">Road</option>
+                <option value="trail">Trail</option>
+                <option value="track">Track</option>
+                <option value="mixed">Mixed</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         <div class="actions">
@@ -485,6 +525,25 @@
   select option {
     background: #1b2636;
     color: white;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 20px;
+  }
+
+  .form-row .field {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-row select {
+    width: 100%;
+  }
+
+  .form-row input {
+    width: 100%;
   }
 
   .input-row {

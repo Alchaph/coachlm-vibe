@@ -43,6 +43,18 @@ func FormatProfileBlock(profile *storage.AthleteProfile) string {
 	if profile.InjuryHistory != "" {
 		lines = append(lines, fmt.Sprintf("Injury History: %s", profile.InjuryHistory))
 	}
+	if profile.ExperienceLevel != "" {
+		lines = append(lines, fmt.Sprintf("Experience Level: %s", profile.ExperienceLevel))
+	}
+	if profile.TrainingDaysPerWeek > 0 {
+		lines = append(lines, fmt.Sprintf("Training Days Per Week: %d", profile.TrainingDaysPerWeek))
+	}
+	if profile.RestingHR > 0 {
+		lines = append(lines, fmt.Sprintf("Resting Heart Rate: %d bpm", profile.RestingHR))
+	}
+	if profile.PreferredTerrain != "" {
+		lines = append(lines, fmt.Sprintf("Preferred Terrain: %s", profile.PreferredTerrain))
+	}
 
 	if len(lines) == 0 {
 		return "No profile configured."

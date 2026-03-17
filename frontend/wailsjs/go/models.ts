@@ -49,6 +49,10 @@ export namespace main {
 	    weeklyMileageTarget: number;
 	    raceGoals: string;
 	    injuryHistory: string;
+	    experienceLevel: string;
+	    trainingDaysPerWeek: number;
+	    restingHR: number;
+	    preferredTerrain: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ProfileData(source);
@@ -62,6 +66,10 @@ export namespace main {
 	        this.weeklyMileageTarget = source["weeklyMileageTarget"];
 	        this.raceGoals = source["raceGoals"];
 	        this.injuryHistory = source["injuryHistory"];
+	        this.experienceLevel = source["experienceLevel"];
+	        this.trainingDaysPerWeek = source["trainingDaysPerWeek"];
+	        this.restingHR = source["restingHR"];
+	        this.preferredTerrain = source["preferredTerrain"];
 	    }
 	}
 	export class SettingsData {

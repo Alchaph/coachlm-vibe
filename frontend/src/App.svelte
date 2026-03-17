@@ -1,6 +1,6 @@
 <script lang="ts">
   import { SendMessage, SaveInsight, IsFirstRun } from '../wailsjs/go/main/App.js'
-  import { afterUpdate, onMount } from 'svelte'
+  import { onMount } from 'svelte'
   import { marked } from 'marked'
   import Dashboard from './Dashboard.svelte'
   import Settings from './Settings.svelte'
@@ -38,11 +38,11 @@
     onboardingChecked = true
   })
 
-  afterUpdate(() => {
+  function scrollToBottom() {
     if (chatContainer) {
       chatContainer.scrollTop = chatContainer.scrollHeight
     }
-  })
+  }
 
   function showError(msg: string) {
     error = msg
@@ -57,10 +57,12 @@
     messages = [...messages, { role: 'user', content: text }]
     input = ''
     loading = true
+    scrollToBottom()
 
     try {
       const response = await SendMessage(text)
       messages = [...messages, { role: 'assistant', content: response }]
+      scrollToBottom()
     } catch (e: any) {
       showError(e?.message || String(e) || 'Failed to get response')
     } finally {
