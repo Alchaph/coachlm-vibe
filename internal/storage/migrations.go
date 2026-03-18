@@ -170,6 +170,40 @@ var migrations = []string{
 		completed_at DATETIME,
 		FOREIGN KEY (week_id) REFERENCES plan_weeks(id) ON DELETE CASCADE
 	)`,
+
+	// S51: Strava athlete stats
+	`CREATE TABLE IF NOT EXISTS athlete_stats (
+		id INTEGER PRIMARY KEY CHECK (id = 1),
+		recent_run_count INTEGER NOT NULL DEFAULT 0,
+		recent_run_distance REAL NOT NULL DEFAULT 0,
+		recent_run_moving_time INTEGER NOT NULL DEFAULT 0,
+		recent_run_elevation REAL NOT NULL DEFAULT 0,
+		ytd_run_count INTEGER NOT NULL DEFAULT 0,
+		ytd_run_distance REAL NOT NULL DEFAULT 0,
+		ytd_run_moving_time INTEGER NOT NULL DEFAULT 0,
+		ytd_run_elevation REAL NOT NULL DEFAULT 0,
+		all_run_count INTEGER NOT NULL DEFAULT 0,
+		all_run_distance REAL NOT NULL DEFAULT 0,
+		all_run_moving_time INTEGER NOT NULL DEFAULT 0,
+		all_run_elevation REAL NOT NULL DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`,
+
+	// S51: Strava gear tracking
+	`CREATE TABLE IF NOT EXISTS gear (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		external_id TEXT NOT NULL UNIQUE,
+		name TEXT NOT NULL DEFAULT '',
+		brand_name TEXT NOT NULL DEFAULT '',
+		model_name TEXT NOT NULL DEFAULT '',
+		description TEXT NOT NULL DEFAULT '',
+		distance REAL NOT NULL DEFAULT 0,
+		is_primary INTEGER NOT NULL DEFAULT 0,
+		is_retired INTEGER NOT NULL DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`,
 }
 
 func (db *DB) migrate() error {

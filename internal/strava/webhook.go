@@ -122,6 +122,33 @@ func (wh *WebhookHandler) processEvent(event WebhookEvent) {
 
 	if err := wh.DB.SaveActivity(activity); err != nil {
 		log.Printf("webhook: save activity %d: %v", event.ObjectID, err)
+		return
+	}
+
+	saved, err := wh.DB.GetActivityByStravaID(event.ObjectID)
+	if err != nil || saved == nil {
+		return
+	}
+
+	streams, err := wh.FetchStreams(context.Background(), accessToken, event.ObjectID)
+	if err != nil || streams == nil {
+		return
+	}
+
+	if streams.HeartRate != nil {
+		if data, jsonErr := json.Marshal(streams.HeartRate); jsonErr == nil {
+			_ = wh.DB.SaveActivityStream(saved.ID, "heartrate", data)
+		}
+	}
+	if streams.Pace != nil {
+		if data, jsonErr := json.Marshal(streams.Pace); jsonErr == nil {
+			_ = wh.DB.SaveActivityStream(saved.ID, "pace", data)
+		}
+	}
+	if streams.Cadence != nil {
+		if data, jsonErr := json.Marshal(streams.Cadence); jsonErr == nil {
+			_ = wh.DB.SaveActivityStream(saved.ID, "cadence", data)
+		}
 	}
 }
 

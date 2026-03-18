@@ -103,6 +103,8 @@ func (a *App) SendMessage(message string) (string, error) {
 	activities, _ := a.db.ListActivities(28, 0)
 	insights, _ := a.db.GetInsights()
 	settings, _ := a.db.GetSettings()
+	stats, _ := a.db.GetAthleteStats()
+	gear, _ := a.db.ListGear()
 
 	customPrompt := ""
 	if settings != nil {
@@ -117,6 +119,8 @@ func (a *App) SendMessage(message string) (string, error) {
 		Insights:     insights,
 		CustomPrompt: customPrompt,
 		PlanBlock:    planBlock,
+		Stats:        stats,
+		Gear:         gear,
 		Now:          time.Now(),
 	}, coachctx.DefaultPromptConfig())
 
@@ -458,6 +462,8 @@ func (a *App) GetContextPreview() (string, error) {
 	activities, _ := a.db.ListActivities(28, 0)
 	insights, _ := a.db.GetInsights()
 	settings, _ := a.db.GetSettings()
+	stats, _ := a.db.GetAthleteStats()
+	gear, _ := a.db.ListGear()
 
 	customPrompt := ""
 	if settings != nil {
@@ -472,6 +478,8 @@ func (a *App) GetContextPreview() (string, error) {
 		Insights:     insights,
 		CustomPrompt: customPrompt,
 		PlanBlock:    planBlock,
+		Stats:        stats,
+		Gear:         gear,
 		Now:          time.Now(),
 	}, coachctx.DefaultPromptConfig())
 
@@ -529,7 +537,7 @@ func (a *App) SyncStravaActivities() error {
 	wailsRuntime.EventsEmit(a.ctx, "strava:sync:start", nil)
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}
-	activities, err := strava.FetchAthleteActivities(a.ctx, httpClient, "https://www.strava.com/api/v3", accessToken)
+	activities, gearIDs, err := strava.FetchAthleteActivities(a.ctx, httpClient, "https://www.strava.com/api/v3", accessToken)
 	if err != nil {
 		wailsRuntime.EventsEmit(a.ctx, "strava:sync:error", err.Error())
 		return fmt.Errorf("fetch activities: %w", err)
@@ -570,6 +578,44 @@ func (a *App) SyncStravaActivities() error {
 				profile.HeartRateZones = string(zonesJSON)
 				_ = a.db.SaveProfile(profile)
 			}
+		}
+	}
+
+	apiBase := "https://www.strava.com/api/v3"
+
+	if athleteID, err := strava.FetchAuthenticatedAthleteID(a.ctx, httpClient, apiBase, accessToken); err == nil {
+		if stravaStats, err := strava.FetchAthleteStats(a.ctx, httpClient, apiBase, accessToken, athleteID); err == nil {
+			storageStats := &storage.AthleteStats{
+				RecentRunCount:      stravaStats.RecentRunTotals.Count,
+				RecentRunDistance:   stravaStats.RecentRunTotals.Distance,
+				RecentRunMovingTime: stravaStats.RecentRunTotals.MovingTime,
+				RecentRunElevation:  stravaStats.RecentRunTotals.ElevationGain,
+				YTDRunCount:         stravaStats.YTDRunTotals.Count,
+				YTDRunDistance:      stravaStats.YTDRunTotals.Distance,
+				YTDRunMovingTime:    stravaStats.YTDRunTotals.MovingTime,
+				YTDRunElevation:     stravaStats.YTDRunTotals.ElevationGain,
+				AllRunCount:         stravaStats.AllRunTotals.Count,
+				AllRunDistance:      stravaStats.AllRunTotals.Distance,
+				AllRunMovingTime:    stravaStats.AllRunTotals.MovingTime,
+				AllRunElevation:     stravaStats.AllRunTotals.ElevationGain,
+			}
+			_ = a.db.SaveAthleteStats(storageStats)
+		}
+	}
+
+	for _, gearID := range gearIDs {
+		if gearDetail, err := strava.FetchGear(a.ctx, httpClient, apiBase, accessToken, gearID); err == nil {
+			storageGear := &storage.Gear{
+				ExternalID:  gearDetail.ID,
+				Name:        gearDetail.Name,
+				BrandName:   gearDetail.BrandName,
+				ModelName:   gearDetail.ModelName,
+				Description: gearDetail.Description,
+				Distance:    gearDetail.Distance,
+				IsPrimary:   gearDetail.Primary,
+				IsRetired:   gearDetail.Retired,
+			}
+			_ = a.db.SaveGear(storageGear)
 		}
 	}
 

@@ -63,6 +63,8 @@ type PromptInput struct {
 	Insights     []storage.PinnedInsight
 	CustomPrompt string
 	PlanBlock    string // Pre-formatted active training plan context (S22).
+	Stats        *storage.AthleteStats
+	Gear         []*storage.Gear
 	Now          time.Time
 }
 
@@ -115,6 +117,8 @@ func AssemblePrompt(input PromptInput, config PromptConfig) string {
 	preamble := buildSystemPreamble()
 	insightsBlock := formatInsightsBlock(input.Insights)
 	profileBlock := "## Athlete Profile\n" + FormatProfileBlock(input.Profile)
+	statsBlock := FormatStatsBlock(input.Stats)
+	gearBlock := FormatGearBlock(input.Gear)
 	trainingBlock := FormatTrainingSummary(input.Activities, input.Now)
 
 	customBlock := ""
@@ -128,56 +132,68 @@ func AssemblePrompt(input PromptInput, config PromptConfig) string {
 	}
 	sacredTokens := EstimateTokens(sacredText)
 
-	full := joinSections(preamble, insightsBlock, profileBlock, input.PlanBlock, trainingBlock)
+	full := joinSections(preamble, insightsBlock, profileBlock, input.PlanBlock, statsBlock, gearBlock, trainingBlock)
 	if EstimateTokens(full) <= config.TokenBudget {
 		return full
 	}
 
 	remainingTokens := config.TokenBudget - sacredTokens
+	nonSacred := []string{profileBlock, input.PlanBlock, statsBlock, gearBlock, trainingBlock}
 	separatorTokens := 0
-	if profileBlock != "" {
-		separatorTokens += EstimateTokens("\n\n")
-	}
-	if input.PlanBlock != "" {
-		separatorTokens += EstimateTokens("\n\n")
-	}
-	if trainingBlock != "" {
-		separatorTokens += EstimateTokens("\n\n")
+	for _, s := range nonSacred {
+		if s != "" {
+			separatorTokens += EstimateTokens("\n\n")
+		}
 	}
 	remainingTokens -= separatorTokens
 
 	profileTokens := EstimateTokens(profileBlock)
 	planTokens := EstimateTokens(input.PlanBlock)
+	statsTokens := EstimateTokens(statsBlock)
+	gearTokens := EstimateTokens(gearBlock)
 
-	if profileTokens+planTokens+EstimateTokens(trainingBlock) <= remainingTokens {
-		return joinSections(preamble, customBlock, insightsBlock, profileBlock, input.PlanBlock, trainingBlock)
+	fixedTokens := profileTokens + planTokens + statsTokens + gearTokens
+
+	if fixedTokens+EstimateTokens(trainingBlock) <= remainingTokens {
+		return joinSections(preamble, customBlock, insightsBlock, profileBlock, input.PlanBlock, statsBlock, gearBlock, trainingBlock)
 	}
 
-	tokensForTraining := remainingTokens - profileTokens - planTokens
+	tokensForTraining := remainingTokens - fixedTokens
 	if tokensForTraining > 0 {
 		truncatedTraining := truncateToTokens(trainingBlock, tokensForTraining)
 		if truncatedTraining != "" {
-			return joinSections(preamble, customBlock, insightsBlock, profileBlock, input.PlanBlock, truncatedTraining)
+			return joinSections(preamble, customBlock, insightsBlock, profileBlock, input.PlanBlock, statsBlock, gearBlock, truncatedTraining)
 		}
 	}
 
-	// Drop training, try with plan block.
-	if profileTokens+planTokens <= remainingTokens {
-		return joinSections(preamble, customBlock, insightsBlock, profileBlock, input.PlanBlock, "")
+	// Drop training, try with all fixed blocks.
+	if fixedTokens <= remainingTokens {
+		return joinSections(preamble, customBlock, insightsBlock, profileBlock, input.PlanBlock, statsBlock, gearBlock)
+	}
+
+	// Drop gear, then stats progressively.
+	withoutGear := profileTokens + planTokens + statsTokens
+	if withoutGear <= remainingTokens {
+		return joinSections(preamble, customBlock, insightsBlock, profileBlock, input.PlanBlock, statsBlock)
+	}
+
+	withoutStats := profileTokens + planTokens
+	if withoutStats <= remainingTokens {
+		return joinSections(preamble, customBlock, insightsBlock, profileBlock, input.PlanBlock)
 	}
 
 	// Drop plan block, try with profile only.
 	if profileTokens <= remainingTokens {
-		return joinSections(preamble, customBlock, insightsBlock, profileBlock, "", "")
+		return joinSections(preamble, customBlock, insightsBlock, profileBlock)
 	}
 
 	tokensForProfile := remainingTokens
 	if tokensForProfile > 0 {
 		truncatedProfile := truncateToTokens(profileBlock, tokensForProfile)
-		return joinSections(preamble, customBlock, insightsBlock, truncatedProfile, "", "")
+		return joinSections(preamble, customBlock, insightsBlock, truncatedProfile)
 	}
 
-	return joinSections(preamble, customBlock, insightsBlock, "", "", "")
+	return joinSections(preamble, customBlock, insightsBlock)
 }
 
 func joinSections(parts ...string) string {

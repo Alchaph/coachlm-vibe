@@ -46,7 +46,7 @@ func TestFetchAthleteActivitiesSinglePage(t *testing.T) {
 	}))
 	defer mockStrava.Close()
 
-	activities, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "test-token")
+	activities, _, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "test-token")
 	if err != nil {
 		t.Fatalf("FetchAthleteActivities: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestFetchAthleteActivitiesPagination(t *testing.T) {
 	}))
 	defer mockStrava.Close()
 
-	activities, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "token")
+	activities, _, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "token")
 	if err != nil {
 		t.Fatalf("FetchAthleteActivities: %v", err)
 	}
@@ -127,7 +127,7 @@ func TestFetchAthleteActivitiesEmptyResponse(t *testing.T) {
 	}))
 	defer mockStrava.Close()
 
-	activities, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "token")
+	activities, _, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "token")
 	if err != nil {
 		t.Fatalf("FetchAthleteActivities: %v", err)
 	}
@@ -143,7 +143,7 @@ func TestFetchAthleteActivitiesAPIError(t *testing.T) {
 	}))
 	defer mockStrava.Close()
 
-	_, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "token")
+	_, _, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "token")
 	if err == nil {
 		t.Error("expected error for non-200 response")
 	}
@@ -157,7 +157,7 @@ func TestFetchAthleteActivitiesAuthHeader(t *testing.T) {
 	}))
 	defer mockStrava.Close()
 
-	_, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "my-secret-token")
+	_, _, err := FetchAthleteActivities(t.Context(), mockStrava.Client(), mockStrava.URL, "my-secret-token")
 	if err != nil {
 		t.Fatalf("FetchAthleteActivities: %v", err)
 	}

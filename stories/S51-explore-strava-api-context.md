@@ -1,7 +1,7 @@
 ---
 id: S51
 title: Explore and integrate Strava API data into context framework
-status: draft
+status: done
 created: 2026-03-18
 updated: 2026-03-18
 ---
@@ -290,5 +290,7 @@ if err == nil && streams != nil {
 | Date | Status | Notes |
 |------|--------|-------|
 | 2026-03-18 | draft | Created story based on Strava API research and context framework analysis |
+| 2026-03-18 | in-progress | Implementation started: rate limiter, stats/gear endpoints, storage, context engine, app wiring |
+| 2026-03-18 | done | All layers implemented and tested. go test ./... passes (9 packages). 122 Playwright e2e tests pass. |
 
 <!-- Agent: add a Blocker section here if status is set to failed -->

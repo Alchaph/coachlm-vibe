@@ -27,6 +27,7 @@ type StravaActivitySummary struct {
 	AverageHeartrate float64 `json:"average_heartrate"`
 	MaxHeartrate     float64 `json:"max_heartrate"`
 	AverageCadence   float64 `json:"average_cadence"`
+	GearID           string  `json:"gear_id"`
 }
 
 // toActivity converts a StravaActivitySummary to a storage.Activity.
@@ -54,38 +55,40 @@ func (s *StravaActivitySummary) toActivity() *storage.Activity {
 }
 
 // FetchAthleteActivities pages through the Strava athlete activities list
-// endpoint and returns all activities as storage-ready structs. It stops
-// when Strava returns an empty page.
-func FetchAthleteActivities(ctx context.Context, httpClient *http.Client, apiBase, accessToken string) ([]*storage.Activity, error) {
+// endpoint and returns all activities as storage-ready structs along with
+// unique gear IDs found across all activities. It stops when Strava returns
+// an empty page.
+func FetchAthleteActivities(ctx context.Context, httpClient *http.Client, apiBase, accessToken string) ([]*storage.Activity, []string, error) {
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 10 * time.Second}
 	}
 
 	var all []*storage.Activity
+	gearSet := make(map[string]struct{})
 	page := 1
 
 	for {
 		url := fmt.Sprintf("%s/athlete/activities?page=%d&per_page=%d", apiBase, page, defaultPerPage)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
-			return nil, fmt.Errorf("create request page %d: %w", page, err)
+			return nil, nil, fmt.Errorf("create request page %d: %w", page, err)
 		}
 		req.Header.Set("Authorization", "Bearer "+accessToken)
 
 		resp, err := httpClient.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("fetch page %d: %w", page, err)
+			return nil, nil, fmt.Errorf("fetch page %d: %w", page, err)
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
-			return nil, fmt.Errorf("strava API error on page %d: HTTP %d", page, resp.StatusCode)
+			return nil, nil, fmt.Errorf("strava API error on page %d: HTTP %d", page, resp.StatusCode)
 		}
 
 		var summaries []StravaActivitySummary
 		if err := json.NewDecoder(resp.Body).Decode(&summaries); err != nil {
 			resp.Body.Close()
-			return nil, fmt.Errorf("decode page %d: %w", page, err)
+			return nil, nil, fmt.Errorf("decode page %d: %w", page, err)
 		}
 		resp.Body.Close()
 
@@ -95,6 +98,9 @@ func FetchAthleteActivities(ctx context.Context, httpClient *http.Client, apiBas
 
 		for i := range summaries {
 			all = append(all, summaries[i].toActivity())
+			if summaries[i].GearID != "" {
+				gearSet[summaries[i].GearID] = struct{}{}
+			}
 		}
 
 		if len(summaries) < defaultPerPage {
@@ -104,5 +110,10 @@ func FetchAthleteActivities(ctx context.Context, httpClient *http.Client, apiBas
 		page++
 	}
 
-	return all, nil
+	gearIDs := make([]string, 0, len(gearSet))
+	for id := range gearSet {
+		gearIDs = append(gearIDs, id)
+	}
+
+	return all, gearIDs, nil
 }
