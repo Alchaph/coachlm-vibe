@@ -1,7 +1,7 @@
 ---
 id: S41
 title: Heart rate zones from Strava
-status: draft
+status: done
 created: 2026-03-17
 updated: 2026-03-17
 ---

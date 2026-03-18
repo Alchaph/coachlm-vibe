@@ -29,6 +29,7 @@ const DEFAULT_PROFILE = {
   trainingDaysPerWeek: 5,
   restingHR: 48,
   preferredTerrain: 'road',
+  heartRateZones: '[{"min":0,"max":115},{"min":115,"max":152},{"min":152,"max":171},{"min":171,"max":190},{"min":190,"max":-1}]',
 }
 
 const DEFAULT_ACTIVITIES = [

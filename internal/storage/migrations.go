@@ -120,6 +120,9 @@ var migrations = []string{
 
 	// Ollama-only migration: gemini backend removed
 	`UPDATE settings SET active_llm = 'local' WHERE active_llm = 'gemini'`,
+
+	// S41: Heart rate zones from Strava
+	`ALTER TABLE athlete_profile ADD COLUMN heart_rate_zones TEXT NOT NULL DEFAULT ''`,
 }
 
 func (db *DB) migrate() error {

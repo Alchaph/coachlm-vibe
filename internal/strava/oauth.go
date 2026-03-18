@@ -54,7 +54,7 @@ func (c *OAuthClient) AuthURL() string {
 	v.Set("client_id", c.ClientID)
 	v.Set("redirect_uri", c.RedirectURI)
 	v.Set("response_type", "code")
-	v.Set("scope", "activity:read_all")
+	v.Set("scope", "activity:read_all,profile:read_all")
 	return defaultAuthURL + "?" + v.Encode()
 }
 

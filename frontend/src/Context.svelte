@@ -21,6 +21,7 @@
   let trainingDaysPerWeek = 0
   let restingHR = 0
   let preferredTerrain = ''
+  let heartRateZones: Array<{min: number, max: number}> = []
   let profileLoaded = false
 
   let insights: Array<{id: number, content: string, sourceSessionId: string, createdAt: string}> = []
@@ -84,6 +85,7 @@
         trainingDaysPerWeek = profile.trainingDaysPerWeek || 0
         restingHR = profile.restingHR || 0
         preferredTerrain = profile.preferredTerrain || ''
+        heartRateZones = parseZones(profile.heartRateZones)
         profileLoaded = true
       }
 
@@ -118,6 +120,7 @@
           trainingDaysPerWeek = profile.trainingDaysPerWeek || 0
           restingHR = profile.restingHR || 0
           preferredTerrain = profile.preferredTerrain || ''
+          heartRateZones = parseZones(profile.heartRateZones)
           profileLoaded = true
         }
 
@@ -148,7 +151,8 @@
         experienceLevel,
         trainingDaysPerWeek,
         restingHR,
-        preferredTerrain
+        preferredTerrain,
+        heartRateZones: ''
       })
       profileLoaded = true
       showFeedback('Profile saved', 'success')
@@ -193,6 +197,13 @@
   function formatHR(hr: number): string {
     if (hr <= 0) return '-'
     return `${hr} bpm`
+  }
+
+  const zoneLabels = ['Recovery', 'Endurance', 'Tempo', 'Threshold', 'VO2 Max']
+
+  function parseZones(raw: string): Array<{min: number, max: number}> {
+    if (!raw) return []
+    try { return JSON.parse(raw) } catch { return [] }
   }
 </script>
 
@@ -269,6 +280,30 @@
           </select>
         </div>
       </div>
+
+      {#if heartRateZones.length > 0}
+        <div class="hr-zones">
+          <h3>Heart Rate Zones <span class="zone-source">(from Strava)</span></h3>
+          <div class="zones-grid">
+            {#each heartRateZones as zone, i}
+              <div class="zone-row">
+                <span class="zone-label">Zone {i + 1}</span>
+                <span class="zone-name">{zoneLabels[i] || 'Zone'}</span>
+                <span class="zone-range">
+                  {#if zone.max === -1 || zone.max === 0}
+                    {zone.min}+ bpm
+                  {:else}
+                    {zone.min}–{zone.max} bpm
+                  {/if}
+                </span>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {:else}
+        <p class="empty-text zone-hint">Connect Strava to see your HR zones</p>
+      {/if}
+
       <button class="btn btn-primary" on:click={saveProfile} disabled={saving}>
         {saving ? 'Saving...' : 'Save Profile'}
       </button>
@@ -619,5 +654,61 @@
   select option {
     background: #1b2636;
     color: white;
+  }
+
+  .hr-zones {
+    margin: 16px 0;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+  }
+
+  .hr-zones h3 {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin: 0 0 10px;
+  }
+
+  .zone-source {
+    font-weight: 400;
+    color: #64748b;
+    font-size: 0.8rem;
+  }
+
+  .zones-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .zone-row {
+    display: grid;
+    grid-template-columns: 60px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    font-size: 0.85rem;
+    padding: 4px 0;
+  }
+
+  .zone-label {
+    color: #94a3b8;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+
+  .zone-name {
+    color: #e2e8f0;
+  }
+
+  .zone-range {
+    color: #94a3b8;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .zone-hint {
+    margin: 12px 0 16px;
   }
 </style>

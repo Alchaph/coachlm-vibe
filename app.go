@@ -46,6 +46,7 @@ type ProfileData struct {
 	TrainingDaysPerWeek int     `json:"trainingDaysPerWeek"`
 	RestingHR           int     `json:"restingHR"`
 	PreferredTerrain    string  `json:"preferredTerrain"`
+	HeartRateZones      string  `json:"heartRateZones"`
 }
 
 type InsightData struct {
@@ -389,10 +390,17 @@ func (a *App) GetProfileData() (*ProfileData, error) {
 		TrainingDaysPerWeek: p.TrainingDaysPerWeek,
 		RestingHR:           p.RestingHR,
 		PreferredTerrain:    p.PreferredTerrain,
+		HeartRateZones:      p.HeartRateZones,
 	}, nil
 }
 
 func (a *App) SaveProfileData(data ProfileData) error {
+	existing, _ := a.db.GetProfile()
+	heartRateZones := ""
+	if existing != nil {
+		heartRateZones = existing.HeartRateZones
+	}
+
 	p := &storage.AthleteProfile{
 		Age:                 data.Age,
 		MaxHR:               data.MaxHR,
@@ -404,6 +412,7 @@ func (a *App) SaveProfileData(data ProfileData) error {
 		TrainingDaysPerWeek: data.TrainingDaysPerWeek,
 		RestingHR:           data.RestingHR,
 		PreferredTerrain:    data.PreferredTerrain,
+		HeartRateZones:      heartRateZones,
 	}
 	if err := a.db.SaveProfile(p); err != nil {
 		return fmt.Errorf("save profile: %w", err)
@@ -540,6 +549,17 @@ func (a *App) SyncStravaActivities() error {
 		"total": total,
 		"saved": saved,
 	})
+
+	if hrZones, err := strava.FetchAthleteZones(a.ctx, httpClient, "https://www.strava.com/api/v3", accessToken); err == nil && len(hrZones.Zones) > 0 {
+		zonesJSON, err := json.Marshal(hrZones.Zones)
+		if err == nil {
+			profile, _ := a.db.GetProfile()
+			if profile != nil {
+				profile.HeartRateZones = string(zonesJSON)
+				_ = a.db.SaveProfile(profile)
+			}
+		}
+	}
 
 	if preview, err := a.GetContextPreview(); err == nil {
 		wailsRuntime.EventsEmit(a.ctx, "strava:sync:context-ready", preview)

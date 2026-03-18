@@ -1,6 +1,7 @@
 package context
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -55,10 +56,39 @@ func FormatProfileBlock(profile *storage.AthleteProfile) string {
 	if profile.PreferredTerrain != "" {
 		lines = append(lines, fmt.Sprintf("Preferred Terrain: %s", profile.PreferredTerrain))
 	}
+	if profile.HeartRateZones != "" {
+		lines = append(lines, formatHeartRateZones(profile.HeartRateZones)...)
+	}
 
 	if len(lines) == 0 {
 		return "No profile configured."
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+var zoneLabels = []string{"Recovery", "Endurance", "Tempo", "Threshold", "VO2 Max"}
+
+func formatHeartRateZones(zonesJSON string) []string {
+	var zones []struct {
+		Min int `json:"min"`
+		Max int `json:"max"`
+	}
+	if err := json.Unmarshal([]byte(zonesJSON), &zones); err != nil || len(zones) == 0 {
+		return nil
+	}
+
+	lines := []string{"Heart Rate Zones:"}
+	for i, z := range zones {
+		label := "Zone"
+		if i < len(zoneLabels) {
+			label = zoneLabels[i]
+		}
+		if z.Max == -1 || z.Max == 0 {
+			lines = append(lines, fmt.Sprintf("- Zone %d: %d+ bpm (%s)", i+1, z.Min, label))
+		} else {
+			lines = append(lines, fmt.Sprintf("- Zone %d: %d-%d bpm (%s)", i+1, z.Min, z.Max, label))
+		}
+	}
+	return lines
 }

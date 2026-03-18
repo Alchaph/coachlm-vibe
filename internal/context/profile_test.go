@@ -125,3 +125,56 @@ func TestFormatProfileBlock_Deterministic(t *testing.T) {
 		t.Errorf("non-deterministic output:\nfirst:  %q\nsecond: %q", first, second)
 	}
 }
+
+func TestFormatProfileBlock_HeartRateZones(t *testing.T) {
+	p := &storage.AthleteProfile{
+		Age:               30,
+		MaxHR:             190,
+		ThresholdPaceSecs: 300,
+		HeartRateZones:    `[{"min":0,"max":115},{"min":115,"max":152},{"min":152,"max":171},{"min":171,"max":190},{"min":190,"max":-1}]`,
+	}
+
+	got := FormatProfileBlock(p)
+
+	expected := []string{
+		"Heart Rate Zones:",
+		"Zone 1: 0-115 bpm (Recovery)",
+		"Zone 2: 115-152 bpm (Endurance)",
+		"Zone 3: 152-171 bpm (Tempo)",
+		"Zone 4: 171-190 bpm (Threshold)",
+		"Zone 5: 190+ bpm (VO2 Max)",
+	}
+	for _, want := range expected {
+		if !strings.Contains(got, want) {
+			t.Errorf("output missing %q\ngot:\n%s", want, got)
+		}
+	}
+}
+
+func TestFormatProfileBlock_HeartRateZonesEmpty(t *testing.T) {
+	p := &storage.AthleteProfile{
+		Age:               30,
+		MaxHR:             190,
+		ThresholdPaceSecs: 300,
+		HeartRateZones:    "",
+	}
+
+	got := FormatProfileBlock(p)
+	if strings.Contains(got, "Heart Rate Zones") {
+		t.Errorf("expected HR zones omitted when empty, got:\n%s", got)
+	}
+}
+
+func TestFormatProfileBlock_HeartRateZonesInvalidJSON(t *testing.T) {
+	p := &storage.AthleteProfile{
+		Age:               30,
+		MaxHR:             190,
+		ThresholdPaceSecs: 300,
+		HeartRateZones:    "not-valid-json",
+	}
+
+	got := FormatProfileBlock(p)
+	if strings.Contains(got, "Heart Rate Zones") {
+		t.Errorf("expected HR zones omitted for invalid JSON, got:\n%s", got)
+	}
+}

@@ -80,6 +80,7 @@ export namespace main {
 	    trainingDaysPerWeek: number;
 	    restingHR: number;
 	    preferredTerrain: string;
+	    heartRateZones: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new ProfileData(source);
@@ -97,6 +98,7 @@ export namespace main {
 	        this.trainingDaysPerWeek = source["trainingDaysPerWeek"];
 	        this.restingHR = source["restingHR"];
 	        this.preferredTerrain = source["preferredTerrain"];
+	        this.heartRateZones = source["heartRateZones"];
 	    }
 	}
 	export class SettingsData {

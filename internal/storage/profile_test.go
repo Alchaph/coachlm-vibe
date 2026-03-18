@@ -258,3 +258,65 @@ func TestSaveProfileValidationRejectsInvalid(t *testing.T) {
 		t.Error("no profile should exist after rejected save")
 	}
 }
+
+func TestProfileHeartRateZones(t *testing.T) {
+	db := newTestDB(t)
+	p := validProfile()
+	p.HeartRateZones = `[{"min":0,"max":115},{"min":115,"max":152},{"min":152,"max":171},{"min":171,"max":190},{"min":190,"max":-1}]`
+
+	if err := db.SaveProfile(p); err != nil {
+		t.Fatalf("SaveProfile with HR zones: %v", err)
+	}
+
+	got, err := db.GetProfile()
+	if err != nil {
+		t.Fatalf("GetProfile: %v", err)
+	}
+	if got.HeartRateZones != p.HeartRateZones {
+		t.Errorf("HeartRateZones = %q, want %q", got.HeartRateZones, p.HeartRateZones)
+	}
+}
+
+func TestProfileHeartRateZonesPreservedOnUpdate(t *testing.T) {
+	db := newTestDB(t)
+	p := validProfile()
+	p.HeartRateZones = `[{"min":0,"max":120}]`
+
+	if err := db.SaveProfile(p); err != nil {
+		t.Fatalf("first SaveProfile: %v", err)
+	}
+
+	p.Age = 36
+	p.HeartRateZones = `[{"min":0,"max":120}]`
+	if err := db.SaveProfile(p); err != nil {
+		t.Fatalf("second SaveProfile: %v", err)
+	}
+
+	got, err := db.GetProfile()
+	if err != nil {
+		t.Fatalf("GetProfile: %v", err)
+	}
+	if got.HeartRateZones != `[{"min":0,"max":120}]` {
+		t.Errorf("HeartRateZones lost after update: %q", got.HeartRateZones)
+	}
+	if got.Age != 36 {
+		t.Errorf("Age = %d, want 36", got.Age)
+	}
+}
+
+func TestProfileHeartRateZonesEmpty(t *testing.T) {
+	db := newTestDB(t)
+	p := validProfile()
+
+	if err := db.SaveProfile(p); err != nil {
+		t.Fatalf("SaveProfile: %v", err)
+	}
+
+	got, err := db.GetProfile()
+	if err != nil {
+		t.Fatalf("GetProfile: %v", err)
+	}
+	if got.HeartRateZones != "" {
+		t.Errorf("HeartRateZones = %q, want empty", got.HeartRateZones)
+	}
+}
