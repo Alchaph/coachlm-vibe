@@ -5,9 +5,10 @@
   import Dashboard from './Dashboard.svelte'
   import Settings from './Settings.svelte'
   import Context from './Context.svelte'
+  import TrainingPlan from './lib/TrainingPlan.svelte'
   import Onboarding from './Onboarding.svelte'
 
-  type Tab = 'chat' | 'dashboard' | 'context' | 'settings'
+  type Tab = 'chat' | 'dashboard' | 'context' | 'plan' | 'settings'
   let activeTab: Tab = 'chat'
 
   let showOnboarding = false
@@ -204,6 +205,20 @@ Please create a weekly breakdown with key workouts, easy days, and recovery. Use
       </svg>
       <span class="nav-label">Context</span>
     </button>
+    <button
+      class="nav-item"
+      class:active={activeTab === 'plan'}
+      on:click={() => activeTab = 'plan'}
+      title="Training Plan"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <span class="nav-label">Plan</span>
+    </button>
     <div class="nav-spacer"></div>
     <button
       class="nav-item"
@@ -333,6 +348,8 @@ Please create a weekly breakdown with key workouts, easy days, and recovery. Use
     <Dashboard />
   {:else if activeTab === 'context'}
     <Context />
+  {:else if activeTab === 'plan'}
+    <TrainingPlan on:adjustchat={(e) => { input = e.detail; activeTab = 'chat' }} />
   {:else if activeTab === 'settings'}
     <Settings />
   {/if}

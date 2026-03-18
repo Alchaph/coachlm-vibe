@@ -123,6 +123,53 @@ var migrations = []string{
 
 	// S41: Heart rate zones from Strava
 	`ALTER TABLE athlete_profile ADD COLUMN heart_rate_zones TEXT NOT NULL DEFAULT ''`,
+
+	// S22: Training plan generation
+	`CREATE TABLE IF NOT EXISTS races (
+		id TEXT PRIMARY KEY,
+		name TEXT NOT NULL,
+		distance_km REAL NOT NULL,
+		race_date DATETIME NOT NULL,
+		terrain TEXT NOT NULL DEFAULT 'road',
+		elevation_m REAL,
+		goal_time_s INTEGER,
+		priority TEXT NOT NULL DEFAULT 'A',
+		is_active INTEGER NOT NULL DEFAULT 0,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`,
+	`CREATE TABLE IF NOT EXISTS training_plans (
+		id TEXT PRIMARY KEY,
+		race_id TEXT NOT NULL,
+		generated_at DATETIME NOT NULL,
+		llm_backend TEXT NOT NULL DEFAULT '',
+		prompt_hash TEXT NOT NULL DEFAULT '',
+		FOREIGN KEY (race_id) REFERENCES races(id) ON DELETE CASCADE
+	)`,
+	`CREATE TABLE IF NOT EXISTS plan_weeks (
+		id TEXT PRIMARY KEY,
+		plan_id TEXT NOT NULL,
+		week_number INTEGER NOT NULL,
+		week_start DATETIME NOT NULL,
+		FOREIGN KEY (plan_id) REFERENCES training_plans(id) ON DELETE CASCADE,
+		UNIQUE(plan_id, week_number)
+	)`,
+	`CREATE TABLE IF NOT EXISTS plan_sessions (
+		id TEXT PRIMARY KEY,
+		week_id TEXT NOT NULL,
+		day_of_week INTEGER NOT NULL,
+		session_type TEXT NOT NULL DEFAULT 'rest',
+		duration_min INTEGER NOT NULL DEFAULT 0,
+		distance_km REAL NOT NULL DEFAULT 0,
+		hr_zone INTEGER NOT NULL DEFAULT 0,
+		pace_min_low REAL NOT NULL DEFAULT 0,
+		pace_min_high REAL NOT NULL DEFAULT 0,
+		notes TEXT NOT NULL DEFAULT '',
+		status TEXT NOT NULL DEFAULT 'planned',
+		actual_duration_min INTEGER,
+		actual_distance_km REAL,
+		completed_at DATETIME,
+		FOREIGN KEY (week_id) REFERENCES plan_weeks(id) ON DELETE CASCADE
+	)`,
 }
 
 func (db *DB) migrate() error {

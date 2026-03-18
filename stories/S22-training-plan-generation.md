@@ -1,7 +1,7 @@
 ---
 id: S22
 title: Training plan generation
-status: draft
+status: done
 created: 2026-03-16
 updated: 2026-03-16
 ---
@@ -134,6 +134,7 @@ PlanBlock() formats: race name, date, weeks remaining, current week sessions, ne
 | Date | Status | Notes |
 |---|---|---|
 | 2026-03-16 | draft | Created |
+| 2026-03-18 | done | Full implementation: Go backend (schema, storage, generator, context block — 86 tests), Wails bindings (9 endpoints), frontend (TrainingPlan.svelte, App.svelte integration), e2e tests (23 plan tests + navigation test). All go test + playwright passing. |
 
 ---
 

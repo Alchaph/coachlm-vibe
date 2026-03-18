@@ -1,3 +1,142 @@
+export namespace plan {
+	
+	export class ActualMetrics {
+	    durationMin?: number;
+	    distanceKm?: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new ActualMetrics(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.durationMin = source["durationMin"];
+	        this.distanceKm = source["distanceKm"];
+	    }
+	}
+	export class Session {
+	    id: string;
+	    weekId: string;
+	    dayOfWeek: number;
+	    type: string;
+	    durationMin: number;
+	    distanceKm: number;
+	    hrZone: number;
+	    paceMinLow: number;
+	    paceMinHigh: number;
+	    notes: string;
+	    status: string;
+	    actualDurationMin?: number;
+	    actualDistanceKm?: number;
+	    completedAt?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Session(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.weekId = source["weekId"];
+	        this.dayOfWeek = source["dayOfWeek"];
+	        this.type = source["type"];
+	        this.durationMin = source["durationMin"];
+	        this.distanceKm = source["distanceKm"];
+	        this.hrZone = source["hrZone"];
+	        this.paceMinLow = source["paceMinLow"];
+	        this.paceMinHigh = source["paceMinHigh"];
+	        this.notes = source["notes"];
+	        this.status = source["status"];
+	        this.actualDurationMin = source["actualDurationMin"];
+	        this.actualDistanceKm = source["actualDistanceKm"];
+	        this.completedAt = source["completedAt"];
+	    }
+	}
+	export class Week {
+	    id: string;
+	    planId: string;
+	    weekNumber: number;
+	    weekStart: string;
+	    sessions: Session[];
+	
+	    static createFrom(source: any = {}) {
+	        return new Week(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.planId = source["planId"];
+	        this.weekNumber = source["weekNumber"];
+	        this.weekStart = source["weekStart"];
+	        this.sessions = this.convertValues(source["sessions"], Session);
+	    }
+	
+	    convertValues(a: any, classs: any, asMap: boolean = false): any {
+	        if (!a) return [];
+	        return a.map((item: any) => classs.createFrom(item));
+	    }
+	}
+	export class TrainingPlan {
+	    id: string;
+	    raceId: string;
+	    generatedAt: string;
+	    llmBackend: string;
+	    promptHash: string;
+	    weeks?: Week[];
+	
+	    static createFrom(source: any = {}) {
+	        return new TrainingPlan(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.raceId = source["raceId"];
+	        this.generatedAt = source["generatedAt"];
+	        this.llmBackend = source["llmBackend"];
+	        this.promptHash = source["promptHash"];
+	        this.weeks = this.convertValues(source["weeks"], Week);
+	    }
+	
+	    convertValues(a: any, classs: any, asMap: boolean = false): any {
+	        if (!a) return [];
+	        return a.map((item: any) => classs.createFrom(item));
+	    }
+	}
+	export class Race {
+	    id: string;
+	    name: string;
+	    distanceKm: number;
+	    raceDate: string;
+	    terrain: string;
+	    elevationM?: number;
+	    goalTimeSec?: number;
+	    priority: string;
+	    isActive: boolean;
+	    createdAt: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new Race(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.name = source["name"];
+	        this.distanceKm = source["distanceKm"];
+	        this.raceDate = source["raceDate"];
+	        this.terrain = source["terrain"];
+	        this.elevationM = source["elevationM"];
+	        this.goalTimeSec = source["goalTimeSec"];
+	        this.priority = source["priority"];
+	        this.isActive = source["isActive"];
+	        this.createdAt = source["createdAt"];
+	    }
+	}
+
+}
+
 export namespace cloudsync {
 	
 	export class SyncStatus {

@@ -21,6 +21,7 @@ import (
 	"coachlm/internal/exportimport"
 	"coachlm/internal/fit"
 	"coachlm/internal/llm"
+	"coachlm/internal/plan"
 	"coachlm/internal/storage"
 	"coachlm/internal/strava"
 
@@ -33,6 +34,7 @@ type App struct {
 	llmClient   llm.LLM
 	sessionID   string
 	syncManager *cloudsync.Manager
+	planStore   *plan.Storage
 }
 
 type ProfileData struct {
@@ -63,7 +65,11 @@ type SettingsData struct {
 }
 
 func NewApp(db *storage.DB, llmClient llm.LLM) *App {
-	return &App{db: db, llmClient: llmClient}
+	return &App{
+		db:        db,
+		llmClient: llmClient,
+		planStore: plan.NewStorage(db),
+	}
 }
 
 func (a *App) startup(ctx context.Context) {
@@ -103,11 +109,14 @@ func (a *App) SendMessage(message string) (string, error) {
 		customPrompt = settings.CustomSystemPrompt
 	}
 
+	planBlock := plan.PlanBlock(a.planStore, time.Now())
+
 	systemPrompt := coachctx.AssemblePrompt(coachctx.PromptInput{
 		Profile:      profile,
 		Activities:   activities,
 		Insights:     insights,
 		CustomPrompt: customPrompt,
+		PlanBlock:    planBlock,
 		Now:          time.Now(),
 	}, coachctx.DefaultPromptConfig())
 
@@ -455,11 +464,14 @@ func (a *App) GetContextPreview() (string, error) {
 		customPrompt = settings.CustomSystemPrompt
 	}
 
+	planBlock := plan.PlanBlock(a.planStore, time.Now())
+
 	prompt := coachctx.AssemblePrompt(coachctx.PromptInput{
 		Profile:      profile,
 		Activities:   activities,
 		Insights:     insights,
 		CustomPrompt: customPrompt,
+		PlanBlock:    planBlock,
 		Now:          time.Now(),
 	}, coachctx.DefaultPromptConfig())
 
@@ -581,6 +593,86 @@ func (a *App) reloadLLMClient() error {
 		return fmt.Errorf("reload LLM client: %w", err)
 	}
 	a.llmClient = client
+	return nil
+}
+
+// --- Training Plan Bindings (S22) ---
+
+// CreateRace creates a new goal race.
+func (a *App) CreateRace(r plan.Race) (plan.Race, error) {
+	r.ID = fmt.Sprintf("race_%d", time.Now().UnixNano())
+	if err := a.planStore.CreateRace(&r); err != nil {
+		return plan.Race{}, fmt.Errorf("create race: %w", err)
+	}
+	return r, nil
+}
+
+// UpdateRace updates an existing race.
+func (a *App) UpdateRace(r plan.Race) error {
+	if err := a.planStore.UpdateRace(&r); err != nil {
+		return fmt.Errorf("update race: %w", err)
+	}
+	return nil
+}
+
+// DeleteRace removes a race and its associated plans.
+func (a *App) DeleteRace(id string) error {
+	if err := a.planStore.DeleteRace(id); err != nil {
+		return fmt.Errorf("delete race: %w", err)
+	}
+	return nil
+}
+
+// ListRaces returns all races ordered by date.
+func (a *App) ListRaces() ([]plan.Race, error) {
+	races, err := a.planStore.ListRaces()
+	if err != nil {
+		return nil, fmt.Errorf("list races: %w", err)
+	}
+	return races, nil
+}
+
+// SetActiveRace makes a race the active training target.
+func (a *App) SetActiveRace(id string) error {
+	if err := a.planStore.SetActiveRace(id); err != nil {
+		return fmt.Errorf("set active race: %w", err)
+	}
+	return nil
+}
+
+// GeneratePlan triggers LLM-based plan generation for a race.
+func (a *App) GeneratePlan(raceID string) (*plan.TrainingPlan, error) {
+	gen := plan.NewGenerator(a.llmClient, a.planStore, a.db, plan.DefaultGeneratorConfig())
+	p, err := gen.Generate(a.ctx, raceID)
+	if err != nil {
+		return nil, fmt.Errorf("generate plan: %w", err)
+	}
+	return p, nil
+}
+
+// GetActivePlan returns the latest plan for the active race.
+func (a *App) GetActivePlan() (*plan.TrainingPlan, error) {
+	p, err := a.planStore.GetActivePlan()
+	if err != nil {
+		return nil, fmt.Errorf("get active plan: %w", err)
+	}
+	return p, nil
+}
+
+// GetPlanWeeks loads all weeks with sessions for a plan.
+func (a *App) GetPlanWeeks(planID string) ([]plan.Week, error) {
+	weeks, err := a.planStore.GetPlanWeeks(planID)
+	if err != nil {
+		return nil, fmt.Errorf("get plan weeks: %w", err)
+	}
+	return weeks, nil
+}
+
+// UpdateSessionStatus marks a session as completed, skipped, or modified.
+func (a *App) UpdateSessionStatus(sessionID string, status plan.SessionStatus, actual plan.ActualMetrics) error {
+	if err := a.planStore.UpdateSessionStatus(sessionID, status, actual); err != nil {
+		return fmt.Errorf("update session status: %w", err)
+	}
 	return nil
 }
 

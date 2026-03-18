@@ -69,6 +69,55 @@ const DEFAULT_STATS = {
   latestDate: '2026-03-10',
 }
 
+const DEFAULT_RACES = [
+  {
+    id: 'race_1',
+    name: 'Berlin Marathon',
+    distanceKm: 42.195,
+    raceDate: '2026-10-15T00:00:00Z',
+    terrain: 'road',
+    elevationM: null,
+    goalTimeSec: 12600,
+    priority: 'A',
+    isActive: true,
+    createdAt: '2026-03-01T00:00:00Z',
+  },
+]
+
+const DEFAULT_ACTIVE_PLAN = {
+  id: 'plan_1',
+  raceId: 'race_1',
+  generatedAt: '2026-03-15T00:00:00Z',
+  llmBackend: 'ollama',
+  promptHash: 'abc123',
+}
+
+const DEFAULT_PLAN_WEEKS = [
+  {
+    id: 'plan_1_w1',
+    planId: 'plan_1',
+    weekNumber: 1,
+    weekStart: '2026-03-16T00:00:00Z',
+    sessions: [
+      { id: 'plan_1_w1_s0', weekId: 'plan_1_w1', dayOfWeek: 1, type: 'easy', durationMin: 45, distanceKm: 8, hrZone: 2, paceMinLow: null, paceMinHigh: null, notes: 'Easy aerobic run', status: 'planned', actualDurationMin: null, actualDistanceKm: null, completedAt: null },
+      { id: 'plan_1_w1_s1', weekId: 'plan_1_w1', dayOfWeek: 3, type: 'tempo', durationMin: 50, distanceKm: 10, hrZone: 3, paceMinLow: null, paceMinHigh: null, notes: 'Tempo at threshold', status: 'planned', actualDurationMin: null, actualDistanceKm: null, completedAt: null },
+      { id: 'plan_1_w1_s2', weekId: 'plan_1_w1', dayOfWeek: 6, type: 'long_run', durationMin: 90, distanceKm: 18, hrZone: 2, paceMinLow: null, paceMinHigh: null, notes: 'Long slow distance', status: 'planned', actualDurationMin: null, actualDistanceKm: null, completedAt: null },
+      { id: 'plan_1_w1_s3', weekId: 'plan_1_w1', dayOfWeek: 7, type: 'rest', durationMin: 0, distanceKm: null, hrZone: null, paceMinLow: null, paceMinHigh: null, notes: '', status: 'planned', actualDurationMin: null, actualDistanceKm: null, completedAt: null },
+    ],
+  },
+  {
+    id: 'plan_1_w2',
+    planId: 'plan_1',
+    weekNumber: 2,
+    weekStart: '2026-03-23T00:00:00Z',
+    sessions: [
+      { id: 'plan_1_w2_s0', weekId: 'plan_1_w2', dayOfWeek: 1, type: 'easy', durationMin: 40, distanceKm: 7, hrZone: 2, paceMinLow: null, paceMinHigh: null, notes: 'Recovery run', status: 'planned', actualDurationMin: null, actualDistanceKm: null, completedAt: null },
+      { id: 'plan_1_w2_s1', weekId: 'plan_1_w2', dayOfWeek: 4, type: 'intervals', durationMin: 55, distanceKm: 12, hrZone: 4, paceMinLow: null, paceMinHigh: null, notes: '6x800m at 5K pace', status: 'planned', actualDurationMin: null, actualDistanceKm: null, completedAt: null },
+      { id: 'plan_1_w2_s2', weekId: 'plan_1_w2', dayOfWeek: 6, type: 'long_run', durationMin: 100, distanceKm: 20, hrZone: 2, paceMinLow: null, paceMinHigh: null, notes: 'Progressive long run', status: 'planned', actualDurationMin: null, actualDistanceKm: null, completedAt: null },
+    ],
+  },
+]
+
 // ---------------------------------------------------------------------------
 // Install mocks on window before Svelte app boots
 // ---------------------------------------------------------------------------
@@ -79,6 +128,9 @@ window.__WAILS_MOCK_STATE__ = {
   activities: [...DEFAULT_ACTIVITIES],
   insights: [...DEFAULT_INSIGHTS],
   stats: { ...DEFAULT_STATS },
+  races: DEFAULT_RACES.map((r) => ({ ...r })),
+  activePlan: { ...DEFAULT_ACTIVE_PLAN },
+  planWeeks: DEFAULT_PLAN_WEEKS.map((w) => ({ ...w, sessions: w.sessions.map((s) => ({ ...s })) })),
   syncStatus: { enabled: false, provider: '', lastSyncedAt: '', lastChatSyncAt: '', syncing: false, lastError: '' },
   stravaConnected: false,
   ollamaModels: [],
@@ -149,6 +201,60 @@ window.go = {
       ImportContext: (filePath, replaceAll) => mockAsync(null),
 
       ImportFITFile: (filePath) => mockAsync(null),
+
+      // Plan bindings
+      CreateRace: (race) => {
+        race.id = 'race_' + Date.now()
+        race.createdAt = new Date().toISOString()
+        race.isActive = false
+        window.__WAILS_MOCK_STATE__.races.push(race)
+        return mockAsync(race)
+      },
+      UpdateRace: (race) => {
+        const idx = window.__WAILS_MOCK_STATE__.races.findIndex((r) => r.id === race.id)
+        if (idx >= 0) window.__WAILS_MOCK_STATE__.races[idx] = { ...window.__WAILS_MOCK_STATE__.races[idx], ...race }
+        return mockAsync(null)
+      },
+      DeleteRace: (id) => {
+        window.__WAILS_MOCK_STATE__.races = window.__WAILS_MOCK_STATE__.races.filter((r) => r.id !== id)
+        if (window.__WAILS_MOCK_STATE__.activePlan && window.__WAILS_MOCK_STATE__.activePlan.raceId === id) {
+          window.__WAILS_MOCK_STATE__.activePlan = null
+          window.__WAILS_MOCK_STATE__.planWeeks = []
+        }
+        return mockAsync(null)
+      },
+      ListRaces: () => mockAsync(window.__WAILS_MOCK_STATE__.races.map((r) => ({ ...r }))),
+      SetActiveRace: (id) => {
+        window.__WAILS_MOCK_STATE__.races.forEach((r) => (r.isActive = r.id === id))
+        return mockAsync(null)
+      },
+      GeneratePlan: (raceId) => {
+        const plan = { id: 'plan_' + Date.now(), raceId, generatedAt: new Date().toISOString(), llmBackend: 'ollama', promptHash: 'mock' }
+        window.__WAILS_MOCK_STATE__.activePlan = plan
+        return mockAsync(plan)
+      },
+      GetActivePlan: () => {
+        const plan = window.__WAILS_MOCK_STATE__.activePlan
+        return mockAsync(plan ? { ...plan } : null)
+      },
+      GetPlanWeeks: (planId) => {
+        return mockAsync(window.__WAILS_MOCK_STATE__.planWeeks.map((w) => ({ ...w, sessions: (w.sessions || []).map((s) => ({ ...s })) })))
+      },
+      UpdateSessionStatus: (sessionId, status, actual) => {
+        for (const w of window.__WAILS_MOCK_STATE__.planWeeks) {
+          const s = (w.sessions || []).find((s) => s.id === sessionId)
+          if (s) {
+            s.status = status
+            if (actual) {
+              if (actual.durationMin != null) s.actualDurationMin = actual.durationMin
+              if (actual.distanceKm != null) s.actualDistanceKm = actual.distanceKm
+            }
+            if (status === 'completed') s.completedAt = new Date().toISOString()
+            break
+          }
+        }
+        return mockAsync(null)
+      },
       
       ConnectS3: (endpoint, bucket, accessKey, secretKey) => {
         window.__WAILS_MOCK_STATE__.syncStatus.enabled = true

@@ -10,8 +10,16 @@ export function ConnectS3(arg1, arg2, arg3, arg4) {
   return window['go']['main']['App']['ConnectS3'](arg1, arg2, arg3, arg4);
 }
 
+export function CreateRace(arg1) {
+  return window['go']['main']['App']['CreateRace'](arg1);
+}
+
 export function DeletePinnedInsight(arg1) {
   return window['go']['main']['App']['DeletePinnedInsight'](arg1);
+}
+
+export function DeleteRace(arg1) {
+  return window['go']['main']['App']['DeleteRace'](arg1);
 }
 
 export function DisconnectCloud() {
@@ -30,6 +38,14 @@ export function ExportContext(arg1) {
   return window['go']['main']['App']['ExportContext'](arg1);
 }
 
+export function GeneratePlan(arg1) {
+  return window['go']['main']['App']['GeneratePlan'](arg1);
+}
+
+export function GetActivePlan() {
+  return window['go']['main']['App']['GetActivePlan']();
+}
+
 export function GetActivityStats() {
   return window['go']['main']['App']['GetActivityStats']();
 }
@@ -44,6 +60,10 @@ export function GetOllamaModels(arg1) {
 
 export function GetPinnedInsights() {
   return window['go']['main']['App']['GetPinnedInsights']();
+}
+
+export function GetPlanWeeks(arg1) {
+  return window['go']['main']['App']['GetPlanWeeks'](arg1);
 }
 
 export function GetProfileData() {
@@ -86,6 +106,10 @@ export function IsFirstRun() {
   return window['go']['main']['App']['IsFirstRun']();
 }
 
+export function ListRaces() {
+  return window['go']['main']['App']['ListRaces']();
+}
+
 export function SaveInsight(arg1) {
   return window['go']['main']['App']['SaveInsight'](arg1);
 }
@@ -102,6 +126,10 @@ export function SendMessage(arg1) {
   return window['go']['main']['App']['SendMessage'](arg1);
 }
 
+export function SetActiveRace(arg1) {
+  return window['go']['main']['App']['SetActiveRace'](arg1);
+}
+
 export function StartStravaAuth() {
   return window['go']['main']['App']['StartStravaAuth']();
 }
@@ -112,4 +140,12 @@ export function SyncNow() {
 
 export function SyncStravaActivities() {
   return window['go']['main']['App']['SyncStravaActivities']();
+}
+
+export function UpdateRace(arg1) {
+  return window['go']['main']['App']['UpdateRace'](arg1);
+}
+
+export function UpdateSessionStatus(arg1, arg2, arg3) {
+  return window['go']['main']['App']['UpdateSessionStatus'](arg1, arg2, arg3);
 }

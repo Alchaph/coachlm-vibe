@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"coachlm/internal/llm"
+	"coachlm/internal/plan"
 	"coachlm/internal/storage"
 )
 
@@ -19,6 +20,7 @@ func newTestApp(t *testing.T) *App {
 	return &App{
 		db:        db,
 		llmClient: llm.NewLocal(llm.LocalConfig{}),
+		planStore: plan.NewStorage(db),
 	}
 }
 

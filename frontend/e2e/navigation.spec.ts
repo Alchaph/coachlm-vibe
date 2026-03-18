@@ -31,6 +31,11 @@ test('switches to Settings tab', async ({ page }) => {
   await expect(page.locator('.settings')).toBeVisible()
 })
 
+test('switches to Training Plan tab', async ({ page }) => {
+  await page.click('button[title="Training Plan"]')
+  await expect(page.locator('.training-plan')).toBeVisible()
+})
+
 test('returns to Chat tab from another tab', async ({ page }) => {
   await page.click('button[title="Dashboard"]')
   await expect(page.locator('.dashboard')).toBeVisible()
