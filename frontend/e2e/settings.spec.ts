@@ -10,7 +10,6 @@ test.beforeEach(async ({ page }) => {
   await page.addInitScript({ path: join(dirname(fileURLToPath(import.meta.url)), 'mocks/wails.ts') })
   await page.goto('/')
   await page.click('button[title="Settings"]')
-  // Wait for settings to finish loading
   await expect(page.locator('.settings')).toBeVisible()
 })
 
@@ -38,7 +37,7 @@ test('No Claude or OpenAI fields exist', async ({ page }) => {
 })
 
 test('Strava section is visible', async ({ page }) => {
-  await expect(page.locator('section h2').nth(2)).toContainText('Strava Connection')
+  await expect(page.locator('section h2').nth(1)).toContainText('Strava Connection')
 })
 
 test('no Strava credential fields exist', async ({ page }) => {
@@ -55,16 +54,4 @@ test('save settings shows success feedback', async ({ page }) => {
   await page.click('button.save-btn')
   await expect(page.locator('.feedback.success')).toBeVisible({ timeout: 3000 })
   await expect(page.locator('.feedback.success')).toContainText('Settings saved')
-})
-
-test('Context Data section is visible', async ({ page }) => {
-  await expect(page.locator('section h2').nth(3)).toContainText('Context Data')
-})
-
-test('Export Context button is visible', async ({ page }) => {
-  await expect(page.locator('button', { hasText: 'Export Context' })).toBeVisible()
-})
-
-test('Import Context button is visible', async ({ page }) => {
-  await expect(page.locator('button', { hasText: 'Import Context' })).toBeVisible()
 })

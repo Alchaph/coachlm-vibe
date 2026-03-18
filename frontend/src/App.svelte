@@ -357,7 +357,10 @@ Please create a weekly breakdown with key workouts, easy days, and recovery. Use
 </main>
 
 {#if onboardingChecked && showOnboarding}
-  <Onboarding on:complete={() => { showOnboarding = false; activeTab = 'chat' }} />
+  <Onboarding
+    on:complete={() => { showOnboarding = false; activeTab = 'chat' }}
+    on:openContext={() => { showOnboarding = false; activeTab = 'context' }}
+  />
 {/if}
 
 <style>

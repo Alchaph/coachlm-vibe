@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, onMount } from 'svelte'
-  import { SaveSettingsData, StartStravaAuth, GetOllamaModels, SaveProfileData, SyncStravaActivities, GetProfileData, GetPinnedInsights, GetRecentActivities, GetStravaCredentialsAvailable } from '../wailsjs/go/main/App.js'
+  import { SaveSettingsData, StartStravaAuth, GetOllamaModels, SyncStravaActivities, GetProfileData, GetPinnedInsights, GetRecentActivities, GetStravaCredentialsAvailable } from '../wailsjs/go/main/App.js'
 
   const dispatch = createEventDispatcher()
 
@@ -16,28 +16,15 @@
       stravaCredentialsAvailable = !!(await GetStravaCredentialsAvailable())
     } catch (_) {}
   })
-
-  // Profile fields (step 4)
-  let profileAge = 0
-  let profileMaxHR = 0
-  let profileThresholdMins = 0
-  let profileThresholdSecs = 0
-  let profileWeeklyMileage = 0
-  let profileRaceGoals = ''
-  let profileInjuryHistory = ''
-  let profileExperienceLevel = ''
-  let profileTrainingDaysPerWeek = 0
-  let profileRestingHR = 0
-  let profilePreferredTerrain = ''
-  let savingProfile = false
-
   // Context readiness (step 5)
   let hasProfile = false
   let hasTrainingData = false
   let hasInsights = false
 
+  $: if (step === 3) checkContextReadiness()
+
   function next() {
-    if (step < 4) step++
+    if (step < 3) step++
   }
 
   function back() {
@@ -58,32 +45,6 @@
       connectingStrava = false
     }
   }
-
-  async function saveProfile() {
-    savingProfile = true
-    error = ''
-    try {
-      const totalSecs = (profileThresholdMins * 60) + profileThresholdSecs
-      await SaveProfileData({
-        age: profileAge,
-        maxHR: profileMaxHR,
-        thresholdPaceSecs: totalSecs,
-        weeklyMileageTarget: profileWeeklyMileage,
-        raceGoals: profileRaceGoals,
-        injuryHistory: profileInjuryHistory,
-        experienceLevel: profileExperienceLevel,
-        trainingDaysPerWeek: profileTrainingDaysPerWeek,
-        restingHR: profileRestingHR,
-        preferredTerrain: profilePreferredTerrain
-      })
-      hasProfile = profileAge > 0 || profileMaxHR > 0 || totalSecs > 0 || profileWeeklyMileage > 0 || profileRaceGoals !== '' || profileInjuryHistory !== '' || profileExperienceLevel !== '' || profileTrainingDaysPerWeek > 0 || profileRestingHR > 0 || profilePreferredTerrain !== ''
-    } catch (e: any) {
-      error = e?.message || 'Failed to save profile'
-    } finally {
-      savingProfile = false
-    }
-  }
-
   async function checkContextReadiness() {
     try {
       const [profile, insights, activities] = await Promise.all([
@@ -118,7 +79,7 @@
 <div class="overlay">
   <div class="wizard">
     <div class="progress">
-      {#each [1, 2, 3, 4] as s}
+      {#each [1, 2, 3] as s}
         <div class="dot" class:active={s === step} class:done={s < step}></div>
       {/each}
     </div>
@@ -162,88 +123,6 @@
 
     {#if step === 3}
       <div class="step">
-        <h1>Athlete Profile</h1>
-        <p class="subtitle">Help your coach understand you. All fields are optional — you can update them later.</p>
-
-        <div class="profile-form">
-          <div class="form-row">
-            <div class="field">
-              <label class="field-label" for="onboarding-age">Age</label>
-              <input id="onboarding-age" type="number" bind:value={profileAge} placeholder="30" min="1" max="120" />
-            </div>
-            <div class="field">
-              <label class="field-label" for="onboarding-max-hr">Max Heart Rate</label>
-              <input id="onboarding-max-hr" type="number" bind:value={profileMaxHR} placeholder="185" min="100" max="220" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="field">
-              <label class="field-label" for="onboarding-threshold-mins">Threshold Pace (/km)</label>
-              <div class="pace-input">
-                <input id="onboarding-threshold-mins" type="number" bind:value={profileThresholdMins} placeholder="5" min="0" max="15" />
-                <span class="pace-sep">:</span>
-                <input id="onboarding-threshold-secs" type="number" bind:value={profileThresholdSecs} placeholder="00" min="0" max="59" />
-              </div>
-            </div>
-            <div class="field">
-              <label class="field-label" for="onboarding-weekly-mileage">Weekly Mileage Target (km)</label>
-              <input id="onboarding-weekly-mileage" type="number" bind:value={profileWeeklyMileage} placeholder="50" step="0.1" min="0" />
-            </div>
-          </div>
-          <div class="field">
-            <label class="field-label" for="onboarding-race-goals">Race Goals</label>
-            <textarea id="onboarding-race-goals" bind:value={profileRaceGoals} placeholder="e.g. Sub-3:30 marathon in October" rows="2"></textarea>
-          </div>
-          <div class="field">
-            <label class="field-label" for="onboarding-injury-history">Injury History</label>
-            <textarea id="onboarding-injury-history" bind:value={profileInjuryHistory} placeholder="e.g. IT band issues in 2024, fully recovered" rows="2"></textarea>
-          </div>
-          <div class="form-row">
-            <div class="field">
-              <label class="field-label" for="onboarding-experience">Experience Level</label>
-              <select id="onboarding-experience" bind:value={profileExperienceLevel}>
-                <option value=""></option>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-                <option value="elite">Elite</option>
-              </select>
-            </div>
-            <div class="field">
-              <label class="field-label" for="onboarding-training-days">Training Days/Week</label>
-              <input id="onboarding-training-days" type="number" bind:value={profileTrainingDaysPerWeek} placeholder="4" min="1" max="7" />
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="field">
-              <label class="field-label" for="onboarding-resting-hr">Resting HR</label>
-              <input id="onboarding-resting-hr" type="number" bind:value={profileRestingHR} placeholder="50" min="30" max="120" />
-            </div>
-            <div class="field">
-              <label class="field-label" for="onboarding-terrain">Preferred Terrain</label>
-              <select id="onboarding-terrain" bind:value={profilePreferredTerrain}>
-                <option value=""></option>
-                <option value="road">Road</option>
-                <option value="trail">Trail</option>
-                <option value="track">Track</option>
-                <option value="mixed">Mixed</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="actions">
-          <button class="btn btn-secondary" on:click={back}>Back</button>
-          <button class="btn btn-secondary" on:click={() => { checkContextReadiness(); next() }}>Skip</button>
-          <button class="btn btn-primary" on:click={async () => { await saveProfile(); checkContextReadiness(); next() }} disabled={savingProfile}>
-            {savingProfile ? 'Saving...' : 'Next'}
-          </button>
-        </div>
-      </div>
-    {/if}
-
-    {#if step === 4}
-      <div class="step">
         <h1>You're All Set!</h1>
         <p class="subtitle">Start chatting with your AI running coach.</p>
         {#if stravaConnected}
@@ -253,6 +132,9 @@
           <div class="readiness-item" class:ready={hasProfile}>
             <span class="readiness-icon">{hasProfile ? '\u2713' : '\u2717'}</span>
             <span>Athlete profile</span>
+            {#if !hasProfile}
+              <button class="btn-link" on:click={() => dispatch('openContext')}>Set up profile</button>
+            {/if}
           </div>
           <div class="readiness-item" class:ready={hasTrainingData}>
             <span class="readiness-icon">{hasTrainingData ? '\u2713' : '\u2717'}</span>
@@ -351,80 +233,11 @@
     margin: 0 0 20px;
   }
 
-  .form {
-    text-align: left;
-    margin-bottom: 24px;
-  }
-
-  .field-label {
-    display: block;
-    font-size: 0.8rem;
-    color: #94a3b8;
-    margin-bottom: 6px;
-    margin-top: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-  }
-
   .field-note {
     font-size: 0.85rem;
     color: #22c55e;
     margin-bottom: 12px;
     font-style: italic;
-  }
-
-  select,
-  input[type="text"],
-  input[type="password"] {
-    width: 100%;
-    padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    color: white;
-    font-family: inherit;
-    font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-
-  select:focus,
-  input:focus {
-    border-color: #3b82f6;
-  }
-
-  select {
-    appearance: none;
-    cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 14px center;
-    padding-right: 36px;
-  }
-
-  select option {
-    background: #1b2636;
-    color: white;
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 20px;
-  }
-
-  .form-row .field {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .form-row select {
-    width: 100%;
-  }
-
-  .form-row input {
-    width: 100%;
   }
 
   .actions {
@@ -470,72 +283,6 @@
     background: rgba(255, 255, 255, 0.12);
   }
 
-  .profile-form {
-    text-align: left;
-    margin-bottom: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-  }
-
-  .form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px 20px;
-  }
-
-  .profile-form .field {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .profile-form input[type="number"],
-  .profile-form textarea {
-    width: 100%;
-    padding: 10px 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    color: white;
-    font-family: inherit;
-    font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.2s;
-    box-sizing: border-box;
-  }
-
-  .profile-form input:focus,
-  .profile-form textarea:focus {
-    border-color: #3b82f6;
-  }
-
-  .profile-form textarea {
-    resize: vertical;
-    min-height: 60px;
-  }
-
-  .profile-form textarea::placeholder,
-  .profile-form input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
-  }
-
-  .pace-input {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-
-  .pace-input input {
-    flex: 1;
-    text-align: center;
-  }
-
-  .pace-sep {
-    color: #94a3b8;
-    font-size: 1.1rem;
-    font-weight: 600;
-  }
-
   .context-readiness {
     display: flex;
     flex-direction: column;
@@ -575,5 +322,20 @@
   .strava-unavailable {
     color: #94a3b8;
     font-style: italic;
+  }
+
+  .btn-link {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+    font-size: 0.9rem;
+    font-family: inherit;
+    margin-left: 8px;
+  }
+  .btn-link:hover {
+    color: #2563eb;
   }
 </style>

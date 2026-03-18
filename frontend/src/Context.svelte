@@ -6,9 +6,17 @@
     GetPinnedInsights,
     DeletePinnedInsight,
     GetRecentActivities,
-    GetActivityStats
+    GetActivityStats,
+    GetSettingsData,
+    SaveSettingsData,
+    ExportContext,
+    ImportContext
   } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
+
+  const runtime: any = (window as any).runtime
+
+  let customSystemPrompt = ''
 
   let age = 0
   let maxHR = 0
@@ -92,6 +100,13 @@
       insights = insightList || []
       activities = activityList || []
       if (stats) activityCount = stats.totalCount || 0
+
+      try {
+        const settings = await GetSettingsData()
+        if (settings) {
+          customSystemPrompt = settings.customSystemPrompt || ''
+        }
+      } catch (_) {}
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to load context data', 'error')
     } finally {
@@ -154,12 +169,72 @@
         preferredTerrain,
         heartRateZones: ''
       })
+
+      const currentSettings = await GetSettingsData()
+      await SaveSettingsData({
+        ollamaEndpoint: currentSettings?.ollamaEndpoint || 'http://localhost:11434',
+        ollamaModel: currentSettings?.ollamaModel || '',
+        customSystemPrompt
+      })
+
       profileLoaded = true
       showFeedback('Profile saved', 'success')
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to save profile', 'error')
     } finally {
       saving = false
+    }
+  }
+
+  async function exportContext() {
+    try {
+      const defaultFilename = `coach-context-${new Date().toISOString().split('T')[0]}.coachctx`
+      const filePath = await runtime.DialogSaveFile({
+        defaultFilename,
+        filters: [{ name: 'CoachLM Context', pattern: '*.coachctx' }]
+      })
+      if (!filePath) return
+      await ExportContext(filePath)
+      showFeedback('Context exported successfully', 'success')
+    } catch (e: any) {
+      showFeedback(e?.message || 'Failed to export context', 'error')
+    }
+  }
+
+  async function importContext() {
+    try {
+      const filePath = await runtime.DialogOpenFile({
+        filters: [{ name: 'CoachLM Context', pattern: '*.coachctx' }]
+      })
+      if (!filePath) return
+      const confirmReplace = confirm('Do you want to replace all existing context data? Click Cancel to merge instead.')
+      await ImportContext(filePath, confirmReplace)
+      showFeedback('Context imported successfully', 'success')
+      
+      const [profile, insightList, activityList] = await Promise.all([
+        GetProfileData(),
+        GetPinnedInsights(),
+        GetRecentActivities(10)
+      ])
+      if (profile) {
+        age = profile.age || 0
+        maxHR = profile.maxHR || 0
+        const paceSecs = profile.thresholdPaceSecs || 0
+        thresholdPaceMins = Math.floor(paceSecs / 60)
+        thresholdPaceSecs = paceSecs % 60
+        weeklyMileageTarget = profile.weeklyMileageTarget || 0
+        raceGoals = profile.raceGoals || ''
+        injuryHistory = profile.injuryHistory || ''
+        experienceLevel = profile.experienceLevel || ''
+        trainingDaysPerWeek = profile.trainingDaysPerWeek || 0
+        restingHR = profile.restingHR || 0
+        preferredTerrain = profile.preferredTerrain || ''
+        heartRateZones = parseZones(profile.heartRateZones)
+      }
+      insights = insightList || []
+      activities = activityList || []
+    } catch (e: any) {
+      showFeedback(e?.message || 'Failed to import context', 'error')
     }
   }
 
@@ -307,6 +382,30 @@
       <button class="btn btn-primary" on:click={saveProfile} disabled={saving}>
         {saving ? 'Saving...' : 'Save Profile'}
       </button>
+    </section>
+
+    <section>
+      <h2>Custom Instructions</h2>
+
+      <label class="field-label" for="custom-system-prompt">Additional System Prompt</label>
+      <textarea
+        id="custom-system-prompt"
+        bind:value={customSystemPrompt}
+        rows="4"
+        placeholder="Add your own instructions, e.g., 'Always respond in German' or 'Never suggest supplements' or 'Always give pace in min/km'"
+      ></textarea>
+      <p class="field-note">Appended to the coaching prompt. Leave blank for default behavior.</p>
+    </section>
+
+    <section>
+      <h2>Context Data</h2>
+
+      <p class="field-note">Export your full coaching context to a file or import from a backup.</p>
+
+      <div class="context-actions">
+        <button class="btn btn-secondary" on:click={exportContext}>Export Context</button>
+        <button class="btn btn-secondary" on:click={importContext}>Import Context</button>
+      </div>
     </section>
 
     <section>
@@ -710,5 +809,30 @@
 
   .zone-hint {
     margin: 12px 0 16px;
+  }
+
+  .field-note {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-top: 8px;
+    margin-bottom: 0;
+    font-style: italic;
+  }
+
+  .context-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.12);
   }
 </style>

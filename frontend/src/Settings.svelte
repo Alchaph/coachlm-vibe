@@ -7,8 +7,6 @@
     StartStravaAuth,
     DisconnectStrava,
     GetOllamaModels,
-    ExportContext,
-    ImportContext,
     GetStravaCredentialsAvailable,
     ConnectS3,
     ConnectGoogleDrive,
@@ -18,12 +16,8 @@
   } from '../wailsjs/go/main/App.js'
   import { cloudsync } from '../wailsjs/go/models'
 
-  // Wails Dialog functions are available on window.runtime
-  const runtime: any = (window as any).runtime
-
   let ollamaEndpoint = 'http://localhost:11434'
   let ollamaModel = ''
-  let customSystemPrompt = ''
 
   let stravaConnected = false
   let stravaCredentialsAvailable = false
@@ -70,46 +64,6 @@
     feedbackTimer = setTimeout(() => { feedback = '' }, 3000)
   }
 
-  async function exportContext() {
-    try {
-      const defaultFilename = `coach-context-${new Date().toISOString().split('T')[0]}.coachctx`
-      const filePath = await runtime.DialogSaveFile({
-        defaultFilename,
-        filters: [{ name: 'CoachLM Context', pattern: '*.coachctx' }]
-      })
-
-      if (!filePath) {
-        return // User cancelled the dialog
-      }
-
-      await ExportContext(filePath)
-      showFeedback('Context exported successfully', 'success')
-    } catch (e: any) {
-      showFeedback(e?.message || 'Failed to export context', 'error')
-    }
-  }
-
-  async function importContext() {
-    try {
-      const filePath = await runtime.DialogOpenFile({
-        filters: [{ name: 'CoachLM Context', pattern: '*.coachctx' }]
-      })
-
-      if (!filePath) {
-        return // User cancelled the dialog
-      }
-
-      const confirmReplace = confirm('Do you want to replace all existing context data? Click Cancel to merge instead.')
-      await ImportContext(filePath, confirmReplace)
-      showFeedback('Context imported successfully', 'success')
-      setTimeout(async () => {
-        await loadSettings()
-      }, 100)
-    } catch (e: any) {
-      showFeedback(e?.message || 'Failed to import context', 'error')
-    }
-  }
-
   async function loadSettings() {
     try {
       const [settings, status, credsAvailable, sync] = await Promise.all([
@@ -122,7 +76,6 @@
       if (settings) {
         ollamaEndpoint = settings.ollamaEndpoint || 'http://localhost:11434'
         ollamaModel = settings.ollamaModel || ''
-        customSystemPrompt = settings.customSystemPrompt || ''
       }
 
       if (status) {
@@ -148,7 +101,6 @@
       if (settings) {
         ollamaEndpoint = settings.ollamaEndpoint || 'http://localhost:11434'
         ollamaModel = settings.ollamaModel || ''
-        customSystemPrompt = settings.customSystemPrompt || ''
       }
 
       if (status) {
@@ -167,10 +119,11 @@
   async function save() {
     saving = true
     try {
+      const currentSettings = await GetSettingsData()
       await SaveSettingsData({
         ollamaEndpoint,
         ollamaModel,
-        customSystemPrompt
+        customSystemPrompt: currentSettings?.customSystemPrompt || ''
       })
       showFeedback('Settings saved!', 'success')
     } catch (e: any) {
@@ -183,10 +136,11 @@
   async function connectStrava() {
     connectingStrava = true
     try {
+      const currentSettings = await GetSettingsData()
       await SaveSettingsData({
         ollamaEndpoint,
         ollamaModel,
-        customSystemPrompt
+        customSystemPrompt: currentSettings?.customSystemPrompt || ''
       })
       await StartStravaAuth()
       const status = await GetStravaAuthStatus()
@@ -310,19 +264,6 @@
     </section>
 
     <section>
-      <h2>Custom Instructions</h2>
-
-      <label class="field-label" for="custom-system-prompt">Additional System Prompt</label>
-      <textarea
-        id="custom-system-prompt"
-        bind:value={customSystemPrompt}
-        rows="4"
-        placeholder="Add your own instructions, e.g., 'Always respond in German' or 'Never suggest supplements' or 'Always give pace in min/km'"
-      ></textarea>
-      <p class="field-note">Appended to the coaching prompt. Leave blank for default behavior.</p>
-    </section>
-
-    <section>
       <h2>Strava Connection</h2>
 
       <div class="status-row">
@@ -345,17 +286,6 @@
         {:else}
           <p class="field-note strava-unavailable">Not available in this build</p>
         {/if}
-      </div>
-    </section>
-
-    <section>
-      <h2>Context Data</h2>
-
-      <p class="field-note">Export your full coaching context to a file or import from a backup.</p>
-
-      <div class="context-actions">
-        <button class="btn btn-secondary" on:click={exportContext}>Export Context</button>
-        <button class="btn btn-secondary" on:click={importContext}>Import Context</button>
       </div>
     </section>
 
@@ -385,8 +315,8 @@
       {:else}
         <label class="field-label" for="cloud-provider">Provider</label>
         <select id="cloud-provider" bind:value={cloudProvider}>
-          <option value="S3-Compatible">S3-Compatible</option>
           <option value="Google Drive">Google Drive</option>
+          <option value="S3-Compatible">S3-Compatible</option>
         </select>
 
         {#if cloudProvider === 'S3-Compatible'}

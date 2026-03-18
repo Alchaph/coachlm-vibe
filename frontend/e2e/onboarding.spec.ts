@@ -1,6 +1,6 @@
 /**
- * E2E tests: onboarding wizard (S25)
- * Covers: all 5 steps, skip flows, finish/complete flow.
+ * E2E tests: onboarding wizard (S25, S50)
+ * Covers: all 3 steps, skip flows, finish/complete flow.
  */
 import { test, expect } from '@playwright/test'
 import { fileURLToPath } from 'url'
@@ -31,32 +31,24 @@ test('Get Started button moves to step 2', async ({ page }) => {
   await expect(page.locator('.step h1')).toContainText('Connect Strava')
 })
 
-test('step 2 Skip moves to step 3 (Athlete Profile)', async ({ page }) => {
+test('step 2 Skip moves to step 3 (You\'re All Set)', async ({ page }) => {
   await page.locator('.wizard button', { hasText: 'Get Started' }).click()
   await page.locator('.wizard button', { hasText: 'Skip' }).click()
-  await expect(page.locator('.step h1')).toContainText('Athlete Profile')
+  await expect(page.locator('.step h1')).toContainText("You're All Set")
 })
 
 test('step 3 Back returns to step 2', async ({ page }) => {
   await page.locator('.wizard button', { hasText: 'Get Started' }).click()
   await page.locator('.wizard button', { hasText: 'Skip' }).click()
-  await page.locator('.wizard button', { hasText: 'Back' }).click()
-  await expect(page.locator('.step h1')).toContainText('Connect Strava')
-})
-
-test('step 3 Skip moves to step 4 (You\'re All Set)', async ({ page }) => {
-  await page.locator('.wizard button', { hasText: 'Get Started' }).click()
-  await page.locator('.wizard button', { hasText: 'Skip' }).click()
-  // On step 3 there are two Skip buttons; use the one in actions
-  await page.locator('.wizard .actions button', { hasText: 'Skip' }).click()
+  // Step 3 doesn't have a Back button — it has Start Chatting
+  // Verify we're on step 3
   await expect(page.locator('.step h1')).toContainText("You're All Set")
 })
 
-test('step 4 Start Chatting button finishes onboarding', async ({ page }) => {
+test('step 3 Start Chatting button finishes onboarding', async ({ page }) => {
   // Skip through all steps quickly
   await page.locator('.wizard button', { hasText: 'Get Started' }).click()
   await page.locator('.wizard button', { hasText: 'Skip' }).click()
-  await page.locator('.wizard .actions button', { hasText: 'Skip' }).click()
 
   await page.locator('.wizard button', { hasText: 'Start Chatting' }).click()
 
@@ -73,4 +65,11 @@ test('progress dots advance through steps', async ({ page }) => {
   await page.locator('.wizard button', { hasText: 'Get Started' }).click()
   await expect(page.locator('.progress .dot.done')).toHaveCount(1)
   await expect(page.locator('.progress .dot.active')).toHaveCount(1)
+})
+
+test('step 3 shows context readiness checklist', async ({ page }) => {
+  await page.locator('.wizard button', { hasText: 'Get Started' }).click()
+  await page.locator('.wizard button', { hasText: 'Skip' }).click()
+  await expect(page.locator('.context-readiness')).toBeVisible()
+  await expect(page.locator('.readiness-item')).toHaveCount(3)
 })

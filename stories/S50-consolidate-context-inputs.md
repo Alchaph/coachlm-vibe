@@ -1,7 +1,7 @@
 ---
 id: S50
 title: Consolidate user context inputs into Context tab
-status: draft
+status: done
 created: 2026-03-18
 updated: 2026-03-18
 ---

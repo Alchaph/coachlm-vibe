@@ -1,6 +1,6 @@
 /**
- * E2E tests: context tab (S29, S33)
- * Covers: athlete profile form, pinned insights list, training summary table.
+ * E2E tests: context tab (S29, S33, S50)
+ * Covers: athlete profile form, custom instructions, context data, pinned insights list, training summary table.
  */
 import { test, expect } from '@playwright/test'
 import { fileURLToPath } from 'url'
@@ -36,14 +36,23 @@ test('save profile button submits successfully', async ({ page }) => {
   await ageInput.fill('35')
   await page.click('button.btn-primary')
 
-  // Feedback should appear
   await expect(page.locator('.feedback.success')).toBeVisible({ timeout: 3000 })
   await expect(page.locator('.feedback.success')).toContainText('Profile saved')
 })
 
+test('shows Custom Instructions section', async ({ page }) => {
+  const headings = page.locator('section h2')
+  await expect(headings.nth(1)).toContainText('Custom Instructions')
+})
+
+test('shows Context Data section', async ({ page }) => {
+  const headings = page.locator('section h2')
+  await expect(headings.nth(2)).toContainText('Context Data')
+})
+
 test('shows Pinned Insights section', async ({ page }) => {
   const headings = page.locator('section h2')
-  await expect(headings.nth(1)).toContainText('Pinned Insights')
+  await expect(headings.nth(3)).toContainText('Pinned Insights')
 })
 
 test('displays mock pinned insight', async ({ page }) => {
@@ -68,8 +77,8 @@ test('shows empty pinned insights message when no insights', async ({ page }) =>
 
 test('shows Training Summary section with activity table', async ({ page }) => {
   const headings = page.locator('section h2')
-  await expect(headings.nth(2)).toContainText('Training Summary')
-  await expect(page.locator('section').nth(2).locator('table')).toBeVisible()
+  await expect(headings.nth(4)).toContainText('Training Summary')
+  await expect(page.locator('section').nth(4).locator('table')).toBeVisible()
 })
 
 test('shows empty training message when no activities', async ({ page }) => {
