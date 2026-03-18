@@ -3,58 +3,46 @@
  * Covers: backend selector, model fields, strava credentials, save button.
  */
 import { test, expect } from '@playwright/test'
-import path from 'path'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript({ path: path.join(__dirname, 'mocks/wails.ts') })
+  await page.addInitScript({ path: join(dirname(fileURLToPath(import.meta.url)), 'mocks/wails.ts') })
   await page.goto('/')
   await page.click('button[title="Settings"]')
   // Wait for settings to finish loading
-  await expect(page.locator('.settings select#active-backend')).toBeVisible()
+  await expect(page.locator('.settings')).toBeVisible()
 })
 
 test('renders the settings page', async ({ page }) => {
   await expect(page.locator('.settings')).toBeVisible()
 })
 
-test('LLM Backend section is visible', async ({ page }) => {
-  await expect(page.locator('section h2').first()).toContainText('LLM Backend')
+test('AI Model section is visible', async ({ page }) => {
+  await expect(page.locator('section h2').first()).toContainText('AI Model')
 })
 
-test('backend selector defaults to free', async ({ page }) => {
-  await expect(page.locator('#active-backend')).toHaveValue('free')
+test('Gemini 2.0 Flash label is visible', async ({ page }) => {
+  await expect(page.locator('.gemini-label')).toContainText('Gemini 2.0 Flash')
 })
 
-test('selecting claude shows API key and model fields', async ({ page }) => {
-  await page.selectOption('#active-backend', 'claude')
-  await expect(page.locator('#claude-api-key')).toBeVisible()
-  await expect(page.locator('#claude-model')).toBeVisible()
+test('Advanced Ollama section is present', async ({ page }) => {
+  await expect(page.locator('details.advanced-section summary')).toBeVisible()
 })
 
-test('selecting openai shows API key and model fields', async ({ page }) => {
-  await page.selectOption('#active-backend', 'openai')
-  await expect(page.locator('#openai-api-key')).toBeVisible()
-  await expect(page.locator('#openai-model')).toBeVisible()
-})
-
-test('selecting local shows ollama endpoint and model fields', async ({ page }) => {
-  await page.selectOption('#active-backend', 'local')
-  await expect(page.locator('#ollama-endpoint')).toBeVisible()
-  await expect(page.locator('#ollama-model')).toBeVisible()
-})
-
-test('selecting free shows no-setup note', async ({ page }) => {
-  await page.selectOption('#active-backend', 'free')
-  await expect(page.locator('.field-note').first()).toContainText('No setup required')
+test('No Claude or OpenAI fields exist', async ({ page }) => {
+  await expect(page.locator('#claude-api-key')).not.toBeVisible()
+  await expect(page.locator('#openai-api-key')).not.toBeVisible()
+  await expect(page.locator('#active-backend')).not.toBeVisible()
 })
 
 test('Strava section is visible', async ({ page }) => {
   await expect(page.locator('section h2').nth(2)).toContainText('Strava Connection')
 })
 
-test('can enter Strava Client ID', async ({ page }) => {
-  await page.fill('#strava-client-id', '12345')
-  await expect(page.locator('#strava-client-id')).toHaveValue('12345')
+test('no Strava credential fields exist', async ({ page }) => {
+  await expect(page.locator('#strava-client-id')).not.toBeVisible()
+  await expect(page.locator('#strava-client-secret')).not.toBeVisible()
 })
 
 test('save button exists and is clickable', async ({ page }) => {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -49,16 +50,9 @@ type InsightData struct {
 	CreatedAt       string `json:"createdAt"`
 }
 
-// SettingsData is the frontend-friendly representation of settings.
 type SettingsData struct {
-	ClaudeAPIKey       string `json:"claudeApiKey"`
-	OpenAIAPIKey       string `json:"openaiApiKey"`
-	ActiveLLM          string `json:"activeLlm"`
+	UseLocalModel      bool   `json:"useLocalModel"`
 	OllamaEndpoint     string `json:"ollamaEndpoint"`
-	StravaClientID     string `json:"stravaClientId"`
-	StravaClientSecret string `json:"stravaClientSecret"`
-	ClaudeModel        string `json:"claudeModel"`
-	OpenAIModel        string `json:"openaiModel"`
 	OllamaModel        string `json:"ollamaModel"`
 	CustomSystemPrompt string `json:"customSystemPrompt"`
 }
@@ -210,29 +204,21 @@ func (a *App) GetSettingsData() (*SettingsData, error) {
 		return nil, nil
 	}
 	return &SettingsData{
-		ClaudeAPIKey:       string(s.ClaudeAPIKey),
-		OpenAIAPIKey:       string(s.OpenAIAPIKey),
-		ActiveLLM:          s.ActiveLLM,
+		UseLocalModel:      s.ActiveLLM == "local",
 		OllamaEndpoint:     s.OllamaEndpoint,
-		StravaClientID:     string(s.StravaClientID),
-		StravaClientSecret: string(s.StravaClientSecret),
-		ClaudeModel:        s.ClaudeModel,
-		OpenAIModel:        s.OpenAIModel,
 		OllamaModel:        s.OllamaModel,
 		CustomSystemPrompt: s.CustomSystemPrompt,
 	}, nil
 }
 
 func (a *App) SaveSettingsData(data SettingsData) error {
+	activeLLM := "gemini"
+	if data.UseLocalModel {
+		activeLLM = "local"
+	}
 	s := &storage.Settings{
-		ClaudeAPIKey:       []byte(data.ClaudeAPIKey),
-		OpenAIAPIKey:       []byte(data.OpenAIAPIKey),
-		ActiveLLM:          data.ActiveLLM,
+		ActiveLLM:          activeLLM,
 		OllamaEndpoint:     data.OllamaEndpoint,
-		StravaClientID:     []byte(data.StravaClientID),
-		StravaClientSecret: []byte(data.StravaClientSecret),
-		ClaudeModel:        data.ClaudeModel,
-		OpenAIModel:        data.OpenAIModel,
 		OllamaModel:        data.OllamaModel,
 		CustomSystemPrompt: data.CustomSystemPrompt,
 	}
@@ -265,19 +251,26 @@ func (a *App) GetStravaAuthStatus() (map[string]interface{}, error) {
 	}, nil
 }
 
-func (a *App) StartStravaAuth() error {
-	s, err := a.db.GetSettings()
-	if err != nil {
-		return fmt.Errorf("get settings for strava auth: %w", err)
+func resolveStravaCredentials() (clientID, clientSecret string, ok bool) {
+	id, secret := strava.BuiltinCredentials()
+	if id == "" {
+		id = os.Getenv("STRAVA_CLIENT_ID")
 	}
-	if s == nil {
-		return errors.New("no settings configured; save settings first")
+	if secret == "" {
+		secret = os.Getenv("STRAVA_CLIENT_SECRET")
 	}
+	return id, secret, id != "" && secret != ""
+}
 
-	clientID := string(s.StravaClientID)
-	clientSecret := string(s.StravaClientSecret)
-	if clientID == "" || clientSecret == "" {
-		return errors.New("strava client ID and secret must be configured in settings")
+func (a *App) GetStravaCredentialsAvailable() bool {
+	_, _, ok := resolveStravaCredentials()
+	return ok
+}
+
+func (a *App) StartStravaAuth() error {
+	clientID, clientSecret, ok := resolveStravaCredentials()
+	if !ok {
+		return errors.New("strava: no client credentials available in this build")
 	}
 
 	encKey := sha256.Sum256([]byte("coachlm-encryption-key"))
@@ -444,12 +437,9 @@ func (a *App) GetContextPreview() (string, error) {
 }
 
 func (a *App) SyncStravaActivities() error {
-	s, err := a.db.GetSettings()
-	if err != nil {
-		return fmt.Errorf("get settings: %w", err)
-	}
-	if s == nil {
-		return errors.New("no settings configured")
+	clientID, clientSecret, ok := resolveStravaCredentials()
+	if !ok {
+		return errors.New("strava: no client credentials available in this build")
 	}
 
 	accessTokenEnc, refreshTokenEnc, expiresAt, err := a.db.GetTokens()
@@ -462,7 +452,7 @@ func (a *App) SyncStravaActivities() error {
 
 	encKey := sha256.Sum256([]byte("coachlm-encryption-key"))
 	oauthClient := strava.NewOAuthClient(
-		string(s.StravaClientID), string(s.StravaClientSecret),
+		clientID, clientSecret,
 		"http://localhost:9876/callback", encKey[:],
 	)
 

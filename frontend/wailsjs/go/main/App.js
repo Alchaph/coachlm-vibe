@@ -46,6 +46,10 @@ export function GetStravaAuthStatus() {
   return window['go']['main']['App']['GetStravaAuthStatus']();
 }
 
+export function GetStravaCredentialsAvailable() {
+  return window['go']['main']['App']['GetStravaCredentialsAvailable']();
+}
+
 export function ImportContext(arg1, arg2) {
   return window['go']['main']['App']['ImportContext'](arg1, arg2);
 }

@@ -73,15 +73,10 @@ export namespace main {
 	    }
 	}
 	export class SettingsData {
-	    claudeApiKey: string;
-	    openaiApiKey: string;
-	    activeLlm: string;
+	    useLocalModel: boolean;
 	    ollamaEndpoint: string;
-	    stravaClientId: string;
-	    stravaClientSecret: string;
-	    claudeModel: string;
-	    openaiModel: string;
 	    ollamaModel: string;
+	    customSystemPrompt: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new SettingsData(source);
@@ -89,15 +84,10 @@ export namespace main {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.claudeApiKey = source["claudeApiKey"];
-	        this.openaiApiKey = source["openaiApiKey"];
-	        this.activeLlm = source["activeLlm"];
+	        this.useLocalModel = source["useLocalModel"];
 	        this.ollamaEndpoint = source["ollamaEndpoint"];
-	        this.stravaClientId = source["stravaClientId"];
-	        this.stravaClientSecret = source["stravaClientSecret"];
-	        this.claudeModel = source["claudeModel"];
-	        this.openaiModel = source["openaiModel"];
 	        this.ollamaModel = source["ollamaModel"];
+	        this.customSystemPrompt = source["customSystemPrompt"];
 	    }
 	}
 	export class StatsData {

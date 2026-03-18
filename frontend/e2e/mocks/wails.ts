@@ -13,14 +13,8 @@
 // Default mock state — can be overridden per-test
 // ---------------------------------------------------------------------------
 const DEFAULT_SETTINGS = {
-  activeLlm: 'free',
-  claudeApiKey: '',
-  openaiApiKey: '',
+  useLocalModel: false,
   ollamaEndpoint: 'http://localhost:11434',
-  stravaClientId: '',
-  stravaClientSecret: '',
-  claudeModel: '',
-  openaiModel: '',
   ollamaModel: '',
   customSystemPrompt: '',
 }
@@ -104,7 +98,6 @@ window.go = {
       GetSettingsData: () => mockAsync({ ...window.__WAILS_MOCK_STATE__.settings }),
       SaveSettingsData: (data) => {
         window.__WAILS_MOCK_STATE__.settings = { ...window.__WAILS_MOCK_STATE__.settings, ...data }
-        // Simulate LLM reload — if "free" with no key, silently succeed (settings still save)
         return mockAsync(null)
       },
 
@@ -142,6 +135,8 @@ window.go = {
         return mockAsync(null)
       },
       SyncStravaActivities: () => mockAsync(null, 300),
+
+      GetStravaCredentialsAvailable: () => mockAsync(true),
 
       SendMessage: (msg) => mockAsync(window.__WAILS_MOCK_STATE__.chatResponse, 300),
 

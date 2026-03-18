@@ -38,7 +38,6 @@ func TestIsFirstRun_WithSettings(t *testing.T) {
 	app := newTestApp(t)
 
 	if err := app.SaveSettingsData(SettingsData{
-		ActiveLLM:      "local",
 		OllamaEndpoint: "http://localhost:11434",
 	}); err != nil {
 		t.Fatalf("SaveSettingsData: %v", err)
@@ -69,15 +68,9 @@ func TestSaveAndGetSettingsData_RoundTrip(t *testing.T) {
 	app := newTestApp(t)
 
 	want := SettingsData{
-		ClaudeAPIKey:       "sk-claude-key",
-		OpenAIAPIKey:       "sk-openai-key",
-		ActiveLLM:          "claude",
-		OllamaEndpoint:     "http://localhost:11434",
-		StravaClientID:     "strava-id",
-		StravaClientSecret: "strava-secret",
-		ClaudeModel:        "claude-opus-4-20250514",
-		OpenAIModel:        "gpt-4o-mini",
-		OllamaModel:        "llama3.1",
+		UseLocalModel:  true,
+		OllamaEndpoint: "http://localhost:11434",
+		OllamaModel:    "llama3.1",
 	}
 
 	if err := app.SaveSettingsData(want); err != nil {
@@ -92,29 +85,11 @@ func TestSaveAndGetSettingsData_RoundTrip(t *testing.T) {
 		t.Fatal("expected non-nil settings")
 	}
 
-	if got.ClaudeAPIKey != want.ClaudeAPIKey {
-		t.Errorf("ClaudeAPIKey = %q, want %q", got.ClaudeAPIKey, want.ClaudeAPIKey)
-	}
-	if got.OpenAIAPIKey != want.OpenAIAPIKey {
-		t.Errorf("OpenAIAPIKey = %q, want %q", got.OpenAIAPIKey, want.OpenAIAPIKey)
-	}
-	if got.ActiveLLM != want.ActiveLLM {
-		t.Errorf("ActiveLLM = %q, want %q", got.ActiveLLM, want.ActiveLLM)
+	if got.UseLocalModel != want.UseLocalModel {
+		t.Errorf("UseLocalModel = %v, want %v", got.UseLocalModel, want.UseLocalModel)
 	}
 	if got.OllamaEndpoint != want.OllamaEndpoint {
 		t.Errorf("OllamaEndpoint = %q, want %q", got.OllamaEndpoint, want.OllamaEndpoint)
-	}
-	if got.StravaClientID != want.StravaClientID {
-		t.Errorf("StravaClientID = %q, want %q", got.StravaClientID, want.StravaClientID)
-	}
-	if got.StravaClientSecret != want.StravaClientSecret {
-		t.Errorf("StravaClientSecret = %q, want %q", got.StravaClientSecret, want.StravaClientSecret)
-	}
-	if got.ClaudeModel != want.ClaudeModel {
-		t.Errorf("ClaudeModel = %q, want %q", got.ClaudeModel, want.ClaudeModel)
-	}
-	if got.OpenAIModel != want.OpenAIModel {
-		t.Errorf("OpenAIModel = %q, want %q", got.OpenAIModel, want.OpenAIModel)
 	}
 	if got.OllamaModel != want.OllamaModel {
 		t.Errorf("OllamaModel = %q, want %q", got.OllamaModel, want.OllamaModel)
@@ -165,28 +140,48 @@ func TestDisconnectStrava(t *testing.T) {
 	}
 }
 
-func TestStartStravaAuth_NoSettings(t *testing.T) {
+func TestStartStravaAuth_NoCredentials(t *testing.T) {
 	app := newTestApp(t)
 
 	err := app.StartStravaAuth()
 	if err == nil {
-		t.Error("expected error when no settings exist")
+		t.Error("expected error when no credentials are available")
+	}
+	if err != nil && !strings.Contains(err.Error(), "no client credentials available") {
+		t.Errorf("unexpected error message: %v", err)
 	}
 }
 
-func TestStartStravaAuth_MissingCredentials(t *testing.T) {
+func TestGetStravaCredentialsAvailable_NoCredentials(t *testing.T) {
 	app := newTestApp(t)
-
-	if err := app.SaveSettingsData(SettingsData{
-		ActiveLLM:      "local",
-		OllamaEndpoint: "http://localhost:11434",
-	}); err != nil {
-		t.Fatalf("SaveSettingsData: %v", err)
+	if app.GetStravaCredentialsAvailable() {
+		t.Error("expected credentials not available when no ldflags or env vars set")
 	}
+}
 
-	err := app.StartStravaAuth()
-	if err == nil {
-		t.Error("expected error when strava credentials are empty")
+func TestResolveStravaCredentials_EnvVars(t *testing.T) {
+	t.Setenv("STRAVA_CLIENT_ID", "env-id-123")
+	t.Setenv("STRAVA_CLIENT_SECRET", "env-secret-456")
+
+	id, secret, ok := resolveStravaCredentials()
+	if !ok {
+		t.Fatal("expected ok=true with env vars set")
+	}
+	if id != "env-id-123" {
+		t.Errorf("clientID = %q, want %q", id, "env-id-123")
+	}
+	if secret != "env-secret-456" {
+		t.Errorf("clientSecret = %q, want %q", secret, "env-secret-456")
+	}
+}
+
+func TestResolveStravaCredentials_Empty(t *testing.T) {
+	t.Setenv("STRAVA_CLIENT_ID", "")
+	t.Setenv("STRAVA_CLIENT_SECRET", "")
+
+	_, _, ok := resolveStravaCredentials()
+	if ok {
+		t.Error("expected ok=false with no credentials")
 	}
 }
 
@@ -194,7 +189,7 @@ func TestReloadLLMClient(t *testing.T) {
 	app := newTestApp(t)
 
 	if err := app.SaveSettingsData(SettingsData{
-		ActiveLLM:      "local",
+		UseLocalModel:  true,
 		OllamaEndpoint: "http://localhost:11434",
 	}); err != nil {
 		t.Fatalf("SaveSettingsData: %v", err)

@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+var builtinClientID = ""
+var builtinClientSecret = ""
+
+func BuiltinCredentials() (clientID, clientSecret string) {
+	return builtinClientID, builtinClientSecret
+}
+
 const (
 	defaultAuthURL  = "https://www.strava.com/oauth/authorize"
 	defaultTokenURL = "https://www.strava.com/oauth/token"

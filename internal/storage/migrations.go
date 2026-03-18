@@ -95,6 +95,8 @@ var migrations = []string{
 	`ALTER TABLE athlete_profile ADD COLUMN resting_hr INTEGER NOT NULL DEFAULT 0`,
 	`ALTER TABLE athlete_profile ADD COLUMN preferred_terrain TEXT NOT NULL DEFAULT ''`,
 	`ALTER TABLE settings ADD COLUMN custom_system_prompt TEXT NOT NULL DEFAULT ''`,
+
+	`UPDATE settings SET active_llm = 'gemini' WHERE active_llm IN ('claude', 'openai', 'free')`,
 }
 
 func (db *DB) migrate() error {

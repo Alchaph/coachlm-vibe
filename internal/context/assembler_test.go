@@ -1,6 +1,7 @@
 package context
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -29,8 +30,8 @@ func makeActivities(now time.Time) []storage.Activity {
 
 func makeInsights() []storage.PinnedInsight {
 	return []storage.PinnedInsight{
-		{ID: 1, Content: "Athlete responds well to tempo intervals", SourceSessionID: "s1", CreatedAt: time.Now()},
-		{ID: 2, Content: "Keep easy runs below HR 140", SourceSessionID: "s2", CreatedAt: time.Now()},
+		{ID: 1, Content: "Athlete responds well to tempo intervals", SourceSessionID: "s1", CreatedAt: time.Date(2026, 3, 15, 10, 0, 0, 0, time.UTC)},
+		{ID: 2, Content: "Keep easy runs below HR 140", SourceSessionID: "s2", CreatedAt: time.Date(2026, 3, 12, 10, 0, 0, 0, time.UTC)},
 	}
 }
 
@@ -78,7 +79,7 @@ func TestAssemblePrompt_AllBlocksFit(t *testing.T) {
 	if !strings.Contains(result, "# CoachLM — Running Coach") {
 		t.Error("missing system preamble title")
 	}
-	if !strings.Contains(result, "## Coaching Insights") {
+	if !strings.Contains(result, "## Saved Coaching Insights") {
 		t.Error("missing insights section")
 	}
 	if !strings.Contains(result, "## Athlete Profile") {
@@ -105,7 +106,7 @@ func TestAssemblePrompt_AssemblyOrder(t *testing.T) {
 	result := AssemblePrompt(input, config)
 
 	preambleIdx := strings.Index(result, "You are CoachLM")
-	insightsIdx := strings.Index(result, "## Coaching Insights")
+	insightsIdx := strings.Index(result, "## Saved Coaching Insights")
 	profileIdx := strings.Index(result, "## Athlete Profile")
 	trainingIdx := strings.Index(result, "## Training Summary")
 
@@ -146,7 +147,7 @@ func TestAssemblePrompt_TrainingSummaryTruncated(t *testing.T) {
 	fullResult := AssemblePrompt(input, PromptConfig{TokenBudget: 100000})
 	fullTokens := EstimateTokens(fullResult)
 
-	tightBudget := (fullTokens / 2) + 50
+	tightBudget := (fullTokens * 2 / 3) + 50
 	result := AssemblePrompt(input, PromptConfig{TokenBudget: tightBudget})
 
 	if EstimateTokens(result) > tightBudget {
@@ -155,7 +156,7 @@ func TestAssemblePrompt_TrainingSummaryTruncated(t *testing.T) {
 	if !strings.Contains(result, "## Athlete Profile") {
 		t.Error("profile should still be present when only training is truncated")
 	}
-	if !strings.Contains(result, "## Coaching Insights") {
+	if !strings.Contains(result, "## Saved Coaching Insights") {
 		t.Error("insights must always be present")
 	}
 }
@@ -175,7 +176,7 @@ func TestAssemblePrompt_NoTrainingData(t *testing.T) {
 	if !strings.Contains(result, buildSystemPreamble()) {
 		t.Error("missing preamble")
 	}
-	if !strings.Contains(result, "## Coaching Insights") {
+	if !strings.Contains(result, "## Saved Coaching Insights") {
 		t.Error("missing insights")
 	}
 	if !strings.Contains(result, "## Athlete Profile") {
@@ -192,8 +193,9 @@ func TestAssemblePrompt_PinnedInsightsNeverTruncated(t *testing.T) {
 	var insights []storage.PinnedInsight
 	for i := 0; i < 50; i++ {
 		insights = append(insights, storage.PinnedInsight{
-			ID:      int64(i),
-			Content: strings.Repeat("Important insight content here. ", 10),
+			ID:        int64(i),
+			Content:   strings.Repeat("Important insight content here. ", 10),
+			CreatedAt: now.AddDate(0, 0, -i),
 		})
 	}
 
@@ -211,7 +213,7 @@ func TestAssemblePrompt_PinnedInsightsNeverTruncated(t *testing.T) {
 
 	for _, ins := range insights {
 		if !strings.Contains(result, ins.Content) {
-			t.Errorf("insight content was truncated: %q", ins.Content[:40])
+			t.Errorf("insight content was dropped: %q", ins.Content[:40])
 		}
 	}
 	if !strings.Contains(result, insightsBlock) {
@@ -240,7 +242,7 @@ func TestAssemblePrompt_EmptyEverything(t *testing.T) {
 	if !strings.Contains(result, "No recent training data") {
 		t.Error("expected 'No recent training data'")
 	}
-	if strings.Contains(result, "## Coaching Insights") {
+	if strings.Contains(result, "## Saved Coaching Insights") {
 		t.Error("insights section should not appear when there are no insights")
 	}
 }
@@ -270,7 +272,7 @@ func TestAssemblePrompt_LargeProfileTruncated(t *testing.T) {
 
 	result := AssemblePrompt(input, PromptConfig{TokenBudget: budget})
 
-	if !strings.Contains(result, "## Coaching Insights") {
+	if !strings.Contains(result, "## Saved Coaching Insights") {
 		t.Error("insights must be present")
 	}
 	if !strings.Contains(result, buildSystemPreamble()) {
@@ -331,7 +333,7 @@ func TestAssemblePrompt_NoInsights(t *testing.T) {
 
 	result := AssemblePrompt(input, config)
 
-	if strings.Contains(result, "## Coaching Insights") {
+	if strings.Contains(result, "## Saved Coaching Insights") {
 		t.Error("insights section should not appear when empty")
 	}
 	if !strings.Contains(result, "## Athlete Profile") {
@@ -410,13 +412,87 @@ func TestFormatInsightsBlock(t *testing.T) {
 	t.Run("with insights", func(t *testing.T) {
 		insights := makeInsights()
 		result := formatInsightsBlock(insights)
-		if !strings.HasPrefix(result, "## Coaching Insights\n") {
+		if !strings.HasPrefix(result, "## Saved Coaching Insights\n") {
 			t.Error("should start with heading")
 		}
+		if !strings.Contains(result, "- Athlete responds well to tempo intervals [Mar 15]") {
+			t.Errorf("missing or badly formatted insight 1, got:\n%s", result)
+		}
+		if !strings.Contains(result, "- Keep easy runs below HR 140 [Mar 12]") {
+			t.Errorf("missing or badly formatted insight 2, got:\n%s", result)
+		}
+	})
+
+	t.Run("sorted desc by date", func(t *testing.T) {
+		insights := []storage.PinnedInsight{
+			{ID: 1, Content: "Older insight", CreatedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)},
+			{ID: 2, Content: "Newer insight", CreatedAt: time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},
+		}
+		result := formatInsightsBlock(insights)
+		newerIdx := strings.Index(result, "Newer insight")
+		olderIdx := strings.Index(result, "Older insight")
+		if newerIdx >= olderIdx {
+			t.Error("newer insight should appear before older insight (DESC order)")
+		}
+	})
+
+	t.Run("truncates long content at 500 chars", func(t *testing.T) {
+		longContent := strings.Repeat("x", 600)
+		insights := []storage.PinnedInsight{
+			{ID: 1, Content: longContent, CreatedAt: time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},
+		}
+		result := formatInsightsBlock(insights)
+		if strings.Contains(result, longContent) {
+			t.Error("full 600-char content should have been truncated")
+		}
+		truncated := longContent[:500] + "…"
+		if !strings.Contains(result, truncated) {
+			t.Error("should contain first 500 chars followed by ellipsis")
+		}
+	})
+
+	t.Run("zero CreatedAt omits date", func(t *testing.T) {
+		insights := []storage.PinnedInsight{
+			{ID: 1, Content: "No date insight"},
+		}
+		result := formatInsightsBlock(insights)
+		if !strings.Contains(result, "- No date insight\n") {
+			t.Errorf("insight with zero date should have no bracket suffix, got:\n%s", result)
+		}
+	})
+
+	t.Run("100+ insights all present", func(t *testing.T) {
+		var insights []storage.PinnedInsight
+		for i := 0; i < 120; i++ {
+			insights = append(insights, storage.PinnedInsight{
+				ID:        int64(i),
+				Content:   fmt.Sprintf("Insight number %d", i),
+				CreatedAt: time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC).AddDate(0, 0, i),
+			})
+		}
+		result := formatInsightsBlock(insights)
 		for _, ins := range insights {
-			if !strings.Contains(result, "- "+ins.Content) {
+			if !strings.Contains(result, ins.Content) {
 				t.Errorf("missing insight: %q", ins.Content)
 			}
+		}
+	})
+
+	t.Run("emoji and special chars preserved", func(t *testing.T) {
+		insights := []storage.PinnedInsight{
+			{ID: 1, Content: "🏃 Tempo runs help — don't skip! <important>", CreatedAt: time.Date(2026, 3, 15, 0, 0, 0, 0, time.UTC)},
+		}
+		result := formatInsightsBlock(insights)
+		if !strings.Contains(result, "🏃 Tempo runs help — don't skip! <important>") {
+			t.Errorf("emoji/special chars not preserved, got:\n%s", result)
+		}
+	})
+
+	t.Run("guidance subheader present", func(t *testing.T) {
+		insights := makeInsights()
+		result := formatInsightsBlock(insights)
+		if !strings.Contains(result, "Reference these when relevant") {
+			t.Error("missing guidance about referencing insights")
 		}
 	})
 }
@@ -428,11 +504,16 @@ func TestBuildSystemPreamble(t *testing.T) {
 			"# CoachLM — Running Coach",
 			"## Role",
 			"## Response Rules",
+			"## When to Generate Training Plans",
 			"## Output Format",
 			"Lead with the answer",
 			"Reference the athlete's actual numbers",
 			"Default to ≤150 words",
 			"Prescribe specific paces and distances",
+			"do not repeat them verbatim",
+			"Do NOT generate a full training plan unless",
+			"Default to direct, principle-based advice",
+			"asks for permission first",
 		}
 		for _, req := range required {
 			if !strings.Contains(preamble, req) {
@@ -444,8 +525,8 @@ func TestBuildSystemPreamble(t *testing.T) {
 	t.Run("token count under limit", func(t *testing.T) {
 		preamble := buildSystemPreamble()
 		tokens := EstimateTokens(preamble)
-		if tokens > 600 {
-			t.Errorf("preamble too large: %d tokens, should be ≤ 600", tokens)
+		if tokens > 800 {
+			t.Errorf("preamble too large: %d tokens, should be ≤ 800", tokens)
 		}
 	})
 }

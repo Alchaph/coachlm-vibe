@@ -3,10 +3,11 @@
  * Covers: empty state, typing, sending a message, receiving a response, pin insight.
  */
 import { test, expect } from '@playwright/test'
-import path from 'path'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript({ path: path.join(__dirname, 'mocks/wails.ts') })
+  await page.addInitScript({ path: join(dirname(fileURLToPath(import.meta.url)), 'mocks/wails.ts') })
   await page.goto('/')
 })
 

@@ -1,7 +1,7 @@
 ---
 id: S42
 title: Context uses structured insights, not raw pinned messages
-status: draft
+status: done
 created: 2026-03-17
 updated: 2026-03-17
 ---

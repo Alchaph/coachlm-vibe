@@ -27,6 +27,12 @@
   let pinnedIndices: Set<number> = new Set()
   let pinFeedback: Record<number, string> = {}
 
+  let showPlanInput = false
+  let planRace = ''
+  let planDate = ''
+  let planTime = ''
+  let planError = ''
+
   $: canSend = input.trim().length > 0 && !loading
 
   onMount(async () => {
@@ -74,6 +80,40 @@
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       if (canSend) send()
+    }
+  }
+
+  async function sendPlanRequest() {
+    if (!planRace.trim() && !planDate.trim() && !planTime.trim()) {
+      planError = 'Enter at least a race type, date, or target time'
+      return
+    }
+    planError = ''
+
+    const prompt = `Generate a structured training plan for me.
+Race type: ${planRace.trim() || 'Not specified'}
+Target date: ${planDate.trim() || 'Not specified'}
+Target time: ${planTime.trim() || 'Not specified'}
+
+Please create a weekly breakdown with key workouts, easy days, and recovery. Use my profile data and recent training to set appropriate paces.`
+
+    showPlanInput = false
+    planRace = ''
+    planDate = ''
+    planTime = ''
+
+    messages = [...messages, { role: 'user', content: prompt }]
+    loading = true
+    scrollToBottom()
+
+    try {
+      const response = await SendMessage(prompt)
+      messages = [...messages, { role: 'assistant', content: response }]
+      scrollToBottom()
+    } catch (e: any) {
+      showError(e?.message || String(e) || 'Failed to get response')
+    } finally {
+      loading = false
     }
   }
 
@@ -232,7 +272,48 @@
         {/if}
       </div>
 
+      {#if showPlanInput}
+      <div class="plan-input-panel">
+        <div class="plan-header">
+          <span>Training Plan Goal</span>
+          <button class="plan-close" on:click={() => showPlanInput = false} aria-label="Close">&times;</button>
+        </div>
+        {#if planError}
+          <div class="plan-error">{planError}</div>
+        {/if}
+        <div class="plan-fields">
+          <label>
+            <span>Race type</span>
+            <input type="text" bind:value={planRace} placeholder="e.g., 5K, Half Marathon, Marathon" />
+          </label>
+          <label>
+            <span>Target date</span>
+            <input type="date" bind:value={planDate} />
+          </label>
+          <label>
+            <span>Target time</span>
+            <input type="text" bind:value={planTime} placeholder="e.g., 3:30:00, sub-20" />
+          </label>
+        </div>
+        <button class="plan-submit" on:click={sendPlanRequest} disabled={loading}>
+          Generate Plan
+        </button>
+      </div>
+      {/if}
+
       <div class="input-area">
+        <button
+          class="plan-btn"
+          on:click={() => { showPlanInput = !showPlanInput; planError = '' }}
+          disabled={loading}
+          aria-label="Generate Training Plan"
+          title="Generate Training Plan"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+          </svg>
+        </button>
         <textarea
           bind:value={input}
           on:keydown={handleKeydown}
@@ -707,5 +788,124 @@
     background: rgba(255, 255, 255, 0.1);
     color: rgba(255, 255, 255, 0.3);
     cursor: not-allowed;
+  }
+
+  .plan-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .plan-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.15);
+    color: #e2e8f0;
+  }
+
+  .plan-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .plan-input-panel {
+    background: rgba(27, 38, 54, 0.98);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+
+  .plan-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+  }
+
+  .plan-close:hover {
+    color: #e2e8f0;
+  }
+
+  .plan-fields {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .plan-fields label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: #94a3b8;
+    font-size: 0.8rem;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .plan-fields input {
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+  }
+
+  .plan-fields input:focus {
+    border-color: #3b82f6;
+  }
+
+  .plan-submit {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    background: #3b82f6;
+    color: white;
+    cursor: pointer;
+    padding: 8px;
+    font-weight: 500;
+    transition: background 0.2s;
+  }
+
+  .plan-submit:hover:not(:disabled) {
+    background: #2563eb;
+  }
+
+  .plan-submit:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+  }
+
+  .plan-error {
+    color: #f87171;
+    font-size: 0.8rem;
+    margin: 4px 0;
   }
 </style>

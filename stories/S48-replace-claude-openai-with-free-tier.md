@@ -1,7 +1,7 @@
 ---
 id: S48
 title: Replace Claude and ChatGPT backends with Gemini 2.0 Flash as the default model
-status: in-progress
+status: done
 created: 2026-03-18
 updated: 2026-03-18
 ---
@@ -107,3 +107,4 @@ Ollama/local support stays unchanged. Advanced users who want full privacy or a 
 | 2026-03-18 | draft | Created |
 | 2026-03-18 | draft | Updated: backend renamed from "free" to "gemini"; UI label is "Gemini 2.0 Flash" throughout |
 | 2026-03-18 | in-progress | Implementation started |
+| 2026-03-18 | done | All backend + frontend changes complete, go test + 69/69 e2e pass |

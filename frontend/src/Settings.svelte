@@ -8,34 +8,26 @@
     DisconnectStrava,
     GetOllamaModels,
     ExportContext,
-    ImportContext
+    ImportContext,
+    GetStravaCredentialsAvailable
   } from '../wailsjs/go/main/App.js'
 
   // Wails Dialog functions are available on window.runtime
   const runtime: any = (window as any).runtime
 
-  let activeLlm = 'free'
-  let claudeApiKey = ''
-  let openaiApiKey = ''
+  let useLocalModel = false
   let ollamaEndpoint = 'http://localhost:11434'
-  let stravaClientId = ''
-  let stravaClientSecret = ''
-  let claudeModel = ''
-  let openaiModel = ''
   let ollamaModel = ''
   let customSystemPrompt = ''
 
   let stravaConnected = false
+  let stravaCredentialsAvailable = false
   let loading = true
   let saving = false
   let connectingStrava = false
   let feedback = ''
   let feedbackType: 'success' | 'error' = 'success'
   let feedbackTimer: ReturnType<typeof setTimeout> | null = null
-
-  let showClaudeKey = false
-  let showOpenaiKey = false
-  let showStravaSecret = false
 
   let ollamaModels: string[] = []
   let fetchingModels = false
@@ -106,20 +98,15 @@
 
   async function loadSettings() {
     try {
-      const [settings, status] = await Promise.all([
+      const [settings, status, credsAvailable] = await Promise.all([
         GetSettingsData(),
-        GetStravaAuthStatus()
+        GetStravaAuthStatus(),
+        GetStravaCredentialsAvailable()
       ])
 
       if (settings) {
-        activeLlm = settings.activeLlm || 'local'
-        claudeApiKey = settings.claudeApiKey || ''
-        openaiApiKey = settings.openaiApiKey || ''
+        useLocalModel = settings.useLocalModel || false
         ollamaEndpoint = settings.ollamaEndpoint || 'http://localhost:11434'
-        stravaClientId = settings.stravaClientId || ''
-        stravaClientSecret = settings.stravaClientSecret || ''
-        claudeModel = settings.claudeModel || ''
-        openaiModel = settings.openaiModel || ''
         ollamaModel = settings.ollamaModel || ''
         customSystemPrompt = settings.customSystemPrompt || ''
       }
@@ -127,6 +114,8 @@
       if (status) {
         stravaConnected = !!status.connected
       }
+
+      stravaCredentialsAvailable = !!credsAvailable
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to load settings', 'error')
     }
@@ -134,20 +123,15 @@
 
   onMount(async () => {
     try {
-      const [settings, status] = await Promise.all([
+      const [settings, status, credsAvailable] = await Promise.all([
         GetSettingsData(),
-        GetStravaAuthStatus()
+        GetStravaAuthStatus(),
+        GetStravaCredentialsAvailable()
       ])
 
       if (settings) {
-        activeLlm = settings.activeLlm || 'local'
-        claudeApiKey = settings.claudeApiKey || ''
-        openaiApiKey = settings.openaiApiKey || ''
+        useLocalModel = settings.useLocalModel || false
         ollamaEndpoint = settings.ollamaEndpoint || 'http://localhost:11434'
-        stravaClientId = settings.stravaClientId || ''
-        stravaClientSecret = settings.stravaClientSecret || ''
-        claudeModel = settings.claudeModel || ''
-        openaiModel = settings.openaiModel || ''
         ollamaModel = settings.ollamaModel || ''
         customSystemPrompt = settings.customSystemPrompt || ''
       }
@@ -155,6 +139,8 @@
       if (status) {
         stravaConnected = !!status.connected
       }
+
+      stravaCredentialsAvailable = !!credsAvailable
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to load settings', 'error')
     } finally {
@@ -166,14 +152,8 @@
     saving = true
     try {
       await SaveSettingsData({
-        claudeApiKey,
-        openaiApiKey,
-        activeLlm,
+        useLocalModel,
         ollamaEndpoint,
-        stravaClientId,
-        stravaClientSecret,
-        claudeModel,
-        openaiModel,
         ollamaModel,
         customSystemPrompt
       })
@@ -189,14 +169,8 @@
     connectingStrava = true
     try {
       await SaveSettingsData({
-        claudeApiKey,
-        openaiApiKey,
-        activeLlm,
+        useLocalModel,
         ollamaEndpoint,
-        stravaClientId,
-        stravaClientSecret,
-        claudeModel,
-        openaiModel,
         ollamaModel,
         customSystemPrompt
       })
@@ -237,79 +211,46 @@
     {/if}
 
     <section>
-      <h2>LLM Backend</h2>
+      <h2>AI Model</h2>
+      <p class="gemini-label">Powered by Gemini 2.0 Flash</p>
 
-      <label class="field-label" for="active-backend">Active Backend</label>
-      <select id="active-backend" bind:value={activeLlm}>
-        <option value="free">Free (Gemini Flash)</option>
-        <option value="claude">Claude</option>
-        <option value="openai">OpenAI</option>
-        <option value="local">Local (Ollama)</option>
-      </select>
+      <details class="advanced-section">
+        <summary>Advanced: Local Model (Ollama)</summary>
+        <div class="advanced-content">
+          <label class="field-label">
+            <input type="checkbox" bind:checked={useLocalModel} />
+            Use local Ollama model instead of Gemini
+          </label>
 
-      {#if activeLlm === 'free'}
-        <p class="field-note">No setup required - using built-in free tier API.</p>
-      {/if}
-
-      {#if activeLlm === 'claude'}
-        <label class="field-label" for="claude-api-key">Claude API Key</label>
-        <div class="input-row">
-          {#if showClaudeKey}
-            <input id="claude-api-key" type="text" bind:value={claudeApiKey} placeholder="sk-ant-..." />
-          {:else}
-            <input id="claude-api-key" type="password" bind:value={claudeApiKey} placeholder="sk-ant-..." />
-          {/if}
-          <button class="toggle-btn" on:click={() => showClaudeKey = !showClaudeKey}>
-            {showClaudeKey ? 'Hide' : 'Show'}
-          </button>
-        </div>
-        <label class="field-label" for="claude-model">Model</label>
-        <input id="claude-model" type="text" bind:value={claudeModel} placeholder="claude-sonnet-4-20250514" />
-      {/if}
-
-      {#if activeLlm === 'openai'}
-        <label class="field-label" for="openai-api-key">OpenAI API Key</label>
-        <div class="input-row">
-          {#if showOpenaiKey}
-            <input id="openai-api-key" type="text" bind:value={openaiApiKey} placeholder="sk-..." />
-          {:else}
-            <input id="openai-api-key" type="password" bind:value={openaiApiKey} placeholder="sk-..." />
-          {/if}
-          <button class="toggle-btn" on:click={() => showOpenaiKey = !showOpenaiKey}>
-            {showOpenaiKey ? 'Hide' : 'Show'}
-          </button>
-        </div>
-        <label class="field-label" for="openai-model">Model</label>
-        <input id="openai-model" type="text" bind:value={openaiModel} placeholder="gpt-4o" />
-      {/if}
-
-      {#if activeLlm === 'local'}
-        <label class="field-label" for="ollama-endpoint">Ollama Endpoint</label>
-        <input id="ollama-endpoint" type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
-        <label class="field-label" for="ollama-model">Model</label>
-        <div class="input-row">
-          <input id="ollama-model" type="text" bind:value={ollamaModel} placeholder="llama3" />
-          <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
-            {fetchingModels ? '...' : 'Fetch'}
-          </button>
-        </div>
-        {#if modelFetchError}
-          <p class="model-fetch-error">{modelFetchError}</p>
-        {/if}
-        {#if ollamaModels.length > 0}
-          <div class="model-chips">
-            {#each ollamaModels as model}
-              <button
-                class="model-chip"
-                class:selected={ollamaModel === model}
-                on:click={() => ollamaModel = model}
-              >
-                {model}
+          {#if useLocalModel}
+            <label class="field-label" for="ollama-endpoint">Ollama Endpoint</label>
+            <input id="ollama-endpoint" type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
+            <label class="field-label" for="ollama-model">Model</label>
+            <div class="input-row">
+              <input id="ollama-model" type="text" bind:value={ollamaModel} placeholder="llama3" />
+              <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
+                {fetchingModels ? '...' : 'Fetch'}
               </button>
-            {/each}
-          </div>
-        {/if}
-      {/if}
+            </div>
+            {#if modelFetchError}
+              <p class="model-fetch-error">{modelFetchError}</p>
+            {/if}
+            {#if ollamaModels.length > 0}
+              <div class="model-chips">
+                {#each ollamaModels as model}
+                  <button
+                    class="model-chip"
+                    class:selected={ollamaModel === model}
+                    on:click={() => ollamaModel = model}
+                  >
+                    {model}
+                  </button>
+                {/each}
+              </div>
+            {/if}
+          {/if}
+        </div>
+      </details>
     </section>
 
     <section>
@@ -334,32 +275,19 @@
         </span>
       </div>
 
-      <label class="field-label" for="strava-client-id">Client ID</label>
-      <input id="strava-client-id" type="text" bind:value={stravaClientId} placeholder="Your Strava Client ID" />
-
-      <label class="field-label" for="strava-client-secret">Client Secret</label>
-      <div class="input-row">
-        {#if showStravaSecret}
-          <input id="strava-client-secret" type="text" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
-        {:else}
-          <input id="strava-client-secret" type="password" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
-        {/if}
-        <button class="toggle-btn" on:click={() => showStravaSecret = !showStravaSecret}>
-          {showStravaSecret ? 'Hide' : 'Show'}
-        </button>
-      </div>
-
       <div class="strava-actions">
         {#if stravaConnected}
           <button class="btn btn-danger" on:click={disconnectStrava}>Disconnect</button>
-        {:else}
+        {:else if stravaCredentialsAvailable}
           <button
             class="btn btn-primary"
             on:click={connectStrava}
-            disabled={connectingStrava || !stravaClientId || !stravaClientSecret}
+            disabled={connectingStrava}
           >
             {connectingStrava ? 'Connecting...' : 'Connect Strava'}
           </button>
+        {:else}
+          <p class="field-note strava-unavailable">Not available in this build</p>
         {/if}
       </div>
     </section>
@@ -472,6 +400,41 @@
     font-style: italic;
   }
 
+  .gemini-label {
+    color: #22c55e;
+    font-size: 1rem;
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+
+  .advanced-section {
+    margin-top: 16px;
+  }
+
+  .advanced-section summary {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+  }
+
+  .advanced-section summary:hover {
+    color: #e2e8f0;
+  }
+
+  .advanced-content {
+    padding-top: 12px;
+  }
+
+  .advanced-content input[type="checkbox"] {
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
   select,
   input[type="text"],
   input[type="password"],
@@ -563,6 +526,11 @@
 
   .strava-actions {
     margin-top: 16px;
+  }
+
+  .strava-unavailable {
+    color: #94a3b8;
+    font-style: italic;
   }
 
   .btn {

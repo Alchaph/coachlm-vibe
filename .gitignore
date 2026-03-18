@@ -1,6 +1,7 @@
 build/bin
 node_modules
 frontend/dist
+frontend/test-results
 *.db
 *.db-journal
 *.db-wal

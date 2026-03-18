@@ -1,28 +1,22 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte'
-  import { SaveSettingsData, StartStravaAuth, GetOllamaModels, SaveProfileData, SyncStravaActivities, GetProfileData, GetPinnedInsights, GetRecentActivities } from '../wailsjs/go/main/App.js'
+  import { createEventDispatcher, onMount } from 'svelte'
+  import { SaveSettingsData, StartStravaAuth, GetOllamaModels, SaveProfileData, SyncStravaActivities, GetProfileData, GetPinnedInsights, GetRecentActivities, GetStravaCredentialsAvailable } from '../wailsjs/go/main/App.js'
 
   const dispatch = createEventDispatcher()
 
   let step = 1
-  let activeLlm = 'free'
-  let claudeApiKey = ''
-  let openaiApiKey = ''
-  let ollamaEndpoint = 'http://localhost:11434'
-  let stravaClientId = ''
-  let stravaClientSecret = ''
-  let claudeModel = ''
-  let openaiModel = ''
-  let ollamaModel = ''
+  let useLocalModel = false
   let connectingStrava = false
   let stravaConnected = false
+  let stravaCredentialsAvailable = false
   let saving = false
   let error = ''
 
-  let showApiKey = false
-  let ollamaModels: string[] = []
-  let fetchingModels = false
-  let modelFetchError = ''
+  onMount(async () => {
+    try {
+      stravaCredentialsAvailable = !!(await GetStravaCredentialsAvailable())
+    } catch (_) {}
+  })
 
   // Profile fields (step 4)
   let profileAge = 0
@@ -43,24 +37,8 @@
   let hasTrainingData = false
   let hasInsights = false
 
-  async function fetchOllamaModels() {
-    fetchingModels = true
-    modelFetchError = ''
-    ollamaModels = []
-    try {
-      ollamaModels = await GetOllamaModels(ollamaEndpoint) || []
-      if (ollamaModels.length === 0) {
-        modelFetchError = 'No models installed. Run: ollama pull llama3'
-      }
-    } catch (e: any) {
-      modelFetchError = e?.message || 'Cannot reach Ollama'
-    } finally {
-      fetchingModels = false
-    }
-  }
-
   function next() {
-    if (step < 5) step++
+    if (step < 4) step++
   }
 
   function back() {
@@ -68,21 +46,9 @@
   }
 
   async function connectStrava() {
-    if (!stravaClientId || !stravaClientSecret) return
     connectingStrava = true
     error = ''
     try {
-      await SaveSettingsData({
-        claudeApiKey,
-        openaiApiKey,
-        activeLlm,
-        ollamaEndpoint,
-        stravaClientId,
-        stravaClientSecret,
-        claudeModel,
-        openaiModel,
-        ollamaModel
-      })
       await StartStravaAuth()
       stravaConnected = true
       SyncStravaActivities().catch(() => {})
@@ -137,15 +103,10 @@
     error = ''
     try {
       await SaveSettingsData({
-        claudeApiKey,
-        openaiApiKey,
-        activeLlm,
-        ollamaEndpoint,
-        stravaClientId,
-        stravaClientSecret,
-        claudeModel,
-        openaiModel,
-        ollamaModel
+        useLocalModel: false,
+        ollamaEndpoint: 'http://localhost:11434',
+        ollamaModel: '',
+        customSystemPrompt: ''
       })
       dispatch('complete')
     } catch (e: any) {
@@ -159,7 +120,7 @@
 <div class="overlay">
   <div class="wizard">
     <div class="progress">
-      {#each [1, 2, 3, 4, 5] as s}
+      {#each [1, 2, 3, 4] as s}
         <div class="dot" class:active={s === step} class:done={s < step}></div>
       {/each}
     </div>
@@ -180,118 +141,28 @@
 
     {#if step === 2}
       <div class="step">
-        <h1>Choose Your AI Backend</h1>
-        <p class="subtitle">Select which LLM will power your coaching conversations.</p>
-
-        <div class="form">
-          <label class="field-label" for="onboarding-backend">Backend</label>
-          <select id="onboarding-backend" bind:value={activeLlm}>
-            <option value="free">Free (Gemini Flash)</option>
-            <option value="claude">Claude</option>
-            <option value="openai">OpenAI</option>
-            <option value="local">Local (Ollama)</option>
-          </select>
-
-          {#if activeLlm === 'free'}
-            <p class="field-note">No setup required - using built-in free tier API.</p>
-          {/if}
-
-          {#if activeLlm === 'claude'}
-            <label class="field-label" for="onboarding-claude-api-key">Claude API Key</label>
-            <div class="input-row">
-              {#if showApiKey}
-                <input id="onboarding-claude-api-key" type="text" bind:value={claudeApiKey} placeholder="sk-ant-..." />
-              {:else}
-                <input id="onboarding-claude-api-key" type="password" bind:value={claudeApiKey} placeholder="sk-ant-..." />
-              {/if}
-              <button class="toggle-btn" on:click={() => showApiKey = !showApiKey}>
-                {showApiKey ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            <label class="field-label" for="onboarding-claude-model">Model</label>
-            <input id="onboarding-claude-model" type="text" bind:value={claudeModel} placeholder="claude-sonnet-4-20250514" />
-          {/if}
-
-          {#if activeLlm === 'openai'}
-            <label class="field-label" for="onboarding-openai-api-key">OpenAI API Key</label>
-            <div class="input-row">
-              {#if showApiKey}
-                <input id="onboarding-openai-api-key" type="text" bind:value={openaiApiKey} placeholder="sk-..." />
-              {:else}
-                <input id="onboarding-openai-api-key" type="password" bind:value={openaiApiKey} placeholder="sk-..." />
-              {/if}
-              <button class="toggle-btn" on:click={() => showApiKey = !showApiKey}>
-                {showApiKey ? 'Hide' : 'Show'}
-              </button>
-            </div>
-            <label class="field-label" for="onboarding-openai-model">Model</label>
-            <input id="onboarding-openai-model" type="text" bind:value={openaiModel} placeholder="gpt-4o" />
-          {/if}
-
-          {#if activeLlm === 'local'}
-            <label class="field-label" for="onboarding-ollama-endpoint">Ollama Endpoint</label>
-            <input id="onboarding-ollama-endpoint" type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
-            <label class="field-label" for="onboarding-ollama-model">Model</label>
-            <div class="input-row">
-              <input id="onboarding-ollama-model" type="text" bind:value={ollamaModel} placeholder="llama3" />
-              <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
-                {fetchingModels ? '...' : 'Fetch'}
-              </button>
-            </div>
-            {#if modelFetchError}
-              <p class="model-fetch-error">{modelFetchError}</p>
-            {/if}
-            {#if ollamaModels.length > 0}
-              <div class="model-chips">
-                {#each ollamaModels as model}
-                  <button
-                    class="model-chip"
-                    class:selected={ollamaModel === model}
-                    on:click={() => ollamaModel = model}
-                  >
-                    {model}
-                  </button>
-                {/each}
-              </div>
-            {/if}
-          {/if}
-        </div>
+        <h1>Connect Strava</h1>
+        <p class="subtitle">Sync your activities automatically. You can skip this and set it up later.</p>
 
         <div class="actions">
           <button class="btn btn-secondary" on:click={back}>Back</button>
-          <button class="btn btn-primary" on:click={next}>Next</button>
+          <button class="btn btn-secondary" on:click={next}>Skip</button>
+          {#if stravaCredentialsAvailable}
+            <button
+              class="btn btn-primary"
+              on:click={connectStrava}
+              disabled={connectingStrava}
+            >
+              {connectingStrava ? 'Connecting...' : 'Connect Strava'}
+            </button>
+          {:else}
+            <p class="field-note strava-unavailable">Not available in this build</p>
+          {/if}
         </div>
       </div>
     {/if}
 
     {#if step === 3}
-      <div class="step">
-        <h1>Connect Strava</h1>
-        <p class="subtitle">Sync your activities automatically. You can skip this and set it up later.</p>
-
-        <div class="form">
-          <label class="field-label" for="onboarding-strava-client-id">Client ID</label>
-          <input id="onboarding-strava-client-id" type="text" bind:value={stravaClientId} placeholder="Your Strava Client ID" />
-
-          <label class="field-label" for="onboarding-strava-client-secret">Client Secret</label>
-          <input id="onboarding-strava-client-secret" type="password" bind:value={stravaClientSecret} placeholder="Your Strava Client Secret" />
-        </div>
-
-        <div class="actions">
-          <button class="btn btn-secondary" on:click={back}>Back</button>
-          <button class="btn btn-secondary" on:click={next}>Skip</button>
-          <button
-            class="btn btn-primary"
-            on:click={connectStrava}
-            disabled={connectingStrava || !stravaClientId || !stravaClientSecret}
-          >
-            {connectingStrava ? 'Connecting...' : 'Connect'}
-          </button>
-        </div>
-      </div>
-    {/if}
-
-    {#if step === 4}
       <div class="step">
         <h1>Athlete Profile</h1>
         <p class="subtitle">Help your coach understand you. All fields are optional — you can update them later.</p>
@@ -373,7 +244,7 @@
       </div>
     {/if}
 
-    {#if step === 5}
+    {#if step === 4}
       <div class="step">
         <h1>You're All Set!</h1>
         <p class="subtitle">Start chatting with your AI running coach.</p>
@@ -558,32 +429,6 @@
     width: 100%;
   }
 
-  .input-row {
-    display: flex;
-    gap: 8px;
-  }
-
-  .input-row input {
-    flex: 1;
-  }
-
-  .toggle-btn {
-    padding: 8px 14px;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 12px;
-    color: #94a3b8;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: color 0.2s, background 0.2s;
-    white-space: nowrap;
-  }
-
-  .toggle-btn:hover {
-    color: #e2e8f0;
-    background: rgba(255, 255, 255, 0.12);
-  }
-
   .actions {
     display: flex;
     justify-content: center;
@@ -625,42 +470,6 @@
   .btn-secondary:hover:not(:disabled) {
     color: #e2e8f0;
     background: rgba(255, 255, 255, 0.12);
-  }
-
-  .model-fetch-error {
-    color: #f87171;
-    font-size: 0.8rem;
-    margin: 6px 0 0;
-  }
-
-  .model-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 10px;
-  }
-
-  .model-chip {
-    padding: 6px 14px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 20px;
-    color: #94a3b8;
-    font-size: 0.85rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: inherit;
-  }
-
-  .model-chip:hover {
-    color: #e2e8f0;
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .model-chip.selected {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: #3b82f6;
-    color: #3b82f6;
   }
 
   .profile-form {
@@ -763,5 +572,10 @@
 
   .readiness-item.ready .readiness-icon {
     color: #22c55e;
+  }
+
+  .strava-unavailable {
+    color: #94a3b8;
+    font-style: italic;
   }
 </style>

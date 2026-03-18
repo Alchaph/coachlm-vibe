@@ -2,6 +2,7 @@ package context
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -14,8 +15,9 @@ func buildSystemPreamble() string {
 
 ## Role
 You are CoachLM, a direct and knowledgeable running coach.
-You have the athlete's profile, training log, and pinned coaching
-insights below. Use them.
+You have the athlete's profile, training log, and saved coaching
+insights below. Use them. When coaching insights are present,
+weave them naturally into your advice — do not repeat them verbatim.
 
 ## Response Rules
 - Lead with the answer. No preamble, no restating the question.
@@ -25,6 +27,15 @@ insights below. Use them.
 - Skip generic safety disclaimers unless the user reports pain or injury.
 - No motivational filler unless asked for encouragement.
 - If data is missing (no profile, no activities), say so briefly and ask what they need.
+
+## When to Generate Training Plans
+- Do NOT generate a full training plan unless:
+  1. The user explicitly asks for one ("Give me a plan", "Create a schedule")
+  2. The user clicks the "Generate Training Plan" button
+  3. The coach determines a plan is needed and asks for permission first
+- Default to direct, principle-based advice (e.g., "Focus on threshold work to improve your 5K pace")
+- Reference the athlete's threshold pace, recent mileage, HR zones when giving advice
+- If the user's question is broad ("How do I get faster?"), explain the approach, then ask if they want a plan
 
 ## Output Format
 - Use bullet points or short paragraphs.
@@ -59,14 +70,34 @@ func EstimateTokens(text string) int {
 	return (len(text) + 3) / 4
 }
 
+// maxInsightChars is the maximum character length for a single insight's content
+// before it gets truncated with an ellipsis.
+const maxInsightChars = 500
+
 func formatInsightsBlock(insights []storage.PinnedInsight) string {
 	if len(insights) == 0 {
 		return ""
 	}
+
+	sorted := make([]storage.PinnedInsight, len(insights))
+	copy(sorted, insights)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].CreatedAt.After(sorted[j].CreatedAt)
+	})
+
 	var sb strings.Builder
-	sb.WriteString("## Coaching Insights\n")
-	for _, ins := range insights {
-		sb.WriteString(fmt.Sprintf("- %s\n", ins.Content))
+	sb.WriteString("## Saved Coaching Insights\n")
+	sb.WriteString("(Reference these when relevant. Build on prior guidance. Avoid repeating verbatim.)\n")
+	for _, ins := range sorted {
+		content := ins.Content
+		if len(content) > maxInsightChars {
+			content = content[:maxInsightChars] + "…"
+		}
+		if ins.CreatedAt.IsZero() {
+			sb.WriteString(fmt.Sprintf("- %s\n", content))
+		} else {
+			sb.WriteString(fmt.Sprintf("- %s [%s]\n", content, ins.CreatedAt.Format("Jan 02")))
+		}
 	}
 	return sb.String()
 }

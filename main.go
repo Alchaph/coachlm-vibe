@@ -67,21 +67,27 @@ func createLLMClient(db *storage.DB) (llm.LLM, error) {
 	}
 
 	if settings == nil {
-		return llm.NewLocal(llm.LocalConfig{}), nil
+		client, err := llm.NewGemini(llm.GeminiConfig{})
+		if err != nil {
+			return llm.NewLocal(llm.LocalConfig{}), nil
+		}
+		return client, nil
 	}
 
 	switch settings.ActiveLLM {
-	case "free":
-		client, err := llm.NewFree(llm.FreeConfig{})
+	case "gemini":
+		client, err := llm.NewGemini(llm.GeminiConfig{})
 		if err != nil {
-			return nil, fmt.Errorf("free LLM initialization failed: %w. Please set GEMINI_API_KEY environment variable, or switch to a different LLM backend in Settings", err)
+			return nil, fmt.Errorf("gemini initialization failed: %w", err)
 		}
 		return client, nil
-	case "claude":
-		return llm.NewClaude(llm.ClaudeConfig{APIKey: string(settings.ClaudeAPIKey), Model: settings.ClaudeModel})
-	case "openai":
-		return llm.NewOpenAI(llm.OpenAIConfig{APIKey: string(settings.OpenAIAPIKey), Model: settings.OpenAIModel})
-	default:
+	case "local":
 		return llm.NewLocal(llm.LocalConfig{Endpoint: settings.OllamaEndpoint, Model: settings.OllamaModel}), nil
+	default:
+		client, err := llm.NewGemini(llm.GeminiConfig{})
+		if err != nil {
+			return llm.NewLocal(llm.LocalConfig{}), nil
+		}
+		return client, nil
 	}
 }

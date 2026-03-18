@@ -9,20 +9,20 @@ import (
 	"testing"
 )
 
-func TestFree_Name(t *testing.T) {
-	client, err := NewFree(FreeConfig{APIKey: "test-key"})
+func TestGemini_Name(t *testing.T) {
+	client, err := NewGemini(GeminiConfig{APIKey: "test-key"})
 	if err != nil {
-		t.Fatalf("NewFree: %v", err)
+		t.Fatalf("NewGemini: %v", err)
 	}
-	if client.Name() != "free" {
-		t.Errorf("Name() = %q, want %q", client.Name(), "free")
+	if client.Name() != "gemini" {
+		t.Errorf("Name() = %q, want %q", client.Name(), "gemini")
 	}
 }
 
-func TestFree_EmptyMessages(t *testing.T) {
-	client, err := NewFree(FreeConfig{APIKey: "test-key"})
+func TestGemini_EmptyMessages(t *testing.T) {
+	client, err := NewGemini(GeminiConfig{APIKey: "test-key"})
 	if err != nil {
-		t.Fatalf("NewFree: %v", err)
+		t.Fatalf("NewGemini: %v", err)
 	}
 
 	_, err = client.Chat(context.Background(), []Message{})
@@ -34,10 +34,10 @@ func TestFree_EmptyMessages(t *testing.T) {
 	}
 }
 
-func TestFree_NoSystemMessage(t *testing.T) {
-	client, err := NewFree(FreeConfig{APIKey: "test-key"})
+func TestGemini_NoNonSystemMessage(t *testing.T) {
+	client, err := NewGemini(GeminiConfig{APIKey: "test-key"})
 	if err != nil {
-		t.Fatalf("NewFree: %v", err)
+		t.Fatalf("NewGemini: %v", err)
 	}
 
 	_, err = client.Chat(context.Background(), []Message{
@@ -51,8 +51,8 @@ func TestFree_NoSystemMessage(t *testing.T) {
 	}
 }
 
-func TestFree_APIKeyRequired(t *testing.T) {
-	_, err := NewFree(FreeConfig{})
+func TestGemini_APIKeyRequired(t *testing.T) {
+	_, err := NewGemini(GeminiConfig{})
 	if err == nil {
 		t.Error("expected error for missing API key")
 	}
@@ -61,12 +61,9 @@ func TestFree_APIKeyRequired(t *testing.T) {
 	}
 }
 
-func TestFree_SystemPromptSent(t *testing.T) {
+func TestGemini_SystemPromptSent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("x-goog-api-key")
-		if auth != "test-key" {
-			t.Errorf("missing API key header")
-		}
 		if auth != "test-key" {
 			t.Errorf("wrong API key: got %q", auth)
 		}
@@ -108,12 +105,12 @@ func TestFree_SystemPromptSent(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewFree(FreeConfig{
+	client, err := NewGemini(GeminiConfig{
 		APIKey:  "test-key",
 		BaseURL: server.URL,
 	})
 	if err != nil {
-		t.Fatalf("NewFree: %v", err)
+		t.Fatalf("NewGemini: %v", err)
 	}
 
 	result, err := client.Chat(context.Background(), []Message{
@@ -128,7 +125,7 @@ func TestFree_SystemPromptSent(t *testing.T) {
 	}
 }
 
-func TestFree_RateLimitError(t *testing.T) {
+func TestGemini_RateLimitError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusTooManyRequests)
@@ -141,12 +138,12 @@ func TestFree_RateLimitError(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewFree(FreeConfig{
+	client, err := NewGemini(GeminiConfig{
 		APIKey:  "test-key",
 		BaseURL: server.URL,
 	})
 	if err != nil {
-		t.Fatalf("NewFree: %v", err)
+		t.Fatalf("NewGemini: %v", err)
 	}
 
 	_, err = client.Chat(context.Background(), []Message{
@@ -163,13 +160,13 @@ func TestFree_RateLimitError(t *testing.T) {
 	}
 }
 
-func TestFree_UnreachableError(t *testing.T) {
-	client, err := NewFree(FreeConfig{
+func TestGemini_UnreachableError(t *testing.T) {
+	client, err := NewGemini(GeminiConfig{
 		APIKey:  "test-key",
 		BaseURL: "http://invalid-nonexistent-host-12345:9999",
 	})
 	if err != nil {
-		t.Fatalf("NewFree: %v", err)
+		t.Fatalf("NewGemini: %v", err)
 	}
 
 	_, err = client.Chat(context.Background(), []Message{
@@ -183,20 +180,20 @@ func TestFree_UnreachableError(t *testing.T) {
 	}
 }
 
-func TestFree_DefaultModel(t *testing.T) {
-	client, err := NewFree(FreeConfig{
+func TestGemini_DefaultModel(t *testing.T) {
+	client, err := NewGemini(GeminiConfig{
 		APIKey: "test-key",
 	})
 	if err != nil {
-		t.Fatalf("NewFree: %v", err)
+		t.Fatalf("NewGemini: %v", err)
 	}
 
-	if client.config.Model != defaultFreeModel {
-		t.Errorf("Model = %q, want %q", client.config.Model, defaultFreeModel)
+	if client.config.Model != defaultGeminiModel {
+		t.Errorf("Model = %q, want %q", client.config.Model, defaultGeminiModel)
 	}
 }
 
-func TestFree_MultiTurnConversation(t *testing.T) {
+func TestGemini_MultiTurnConversation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var reqBody map[string]interface{}
 		if err := json.NewDecoder(r.Body).Decode(&reqBody); err != nil {
@@ -226,12 +223,12 @@ func TestFree_MultiTurnConversation(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client, err := NewFree(FreeConfig{
+	client, err := NewGemini(GeminiConfig{
 		APIKey:  "test-key",
 		BaseURL: server.URL,
 	})
 	if err != nil {
-		t.Fatalf("NewFree: %v", err)
+		t.Fatalf("NewGemini: %v", err)
 	}
 
 	result, err := client.Chat(context.Background(), []Message{

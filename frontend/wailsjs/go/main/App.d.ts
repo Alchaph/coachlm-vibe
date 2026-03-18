@@ -24,6 +24,8 @@ export function GetSettingsData():Promise<main.SettingsData>;
 
 export function GetStravaAuthStatus():Promise<Record<string, any>>;
 
+export function GetStravaCredentialsAvailable():Promise<boolean>;
+
 export function ImportContext(arg1:string,arg2:boolean):Promise<void>;
 
 export function ImportFITFile(arg1:string):Promise<void>;

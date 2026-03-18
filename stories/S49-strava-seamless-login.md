@@ -1,7 +1,7 @@
 ---
 id: S49
 title: Seamless Strava login — remove client ID/secret from UI
-status: draft
+status: done
 created: 2026-03-18
 updated: 2026-03-18
 ---

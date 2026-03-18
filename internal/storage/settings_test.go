@@ -1,7 +1,6 @@
 package storage
 
 import (
-	"bytes"
 	"testing"
 )
 
@@ -21,9 +20,7 @@ func TestSaveAndGetSettings_RoundTrip(t *testing.T) {
 	db := newTestDB(t)
 
 	want := &Settings{
-		ClaudeAPIKey:   []byte("encrypted-claude-key"),
-		OpenAIAPIKey:   []byte("encrypted-openai-key"),
-		ActiveLLM:      "claude",
+		ActiveLLM:      "gemini",
 		OllamaEndpoint: "http://localhost:11434",
 	}
 
@@ -39,12 +36,6 @@ func TestSaveAndGetSettings_RoundTrip(t *testing.T) {
 		t.Fatal("expected non-nil settings")
 	}
 
-	if !bytes.Equal(got.ClaudeAPIKey, want.ClaudeAPIKey) {
-		t.Errorf("ClaudeAPIKey = %q, want %q", got.ClaudeAPIKey, want.ClaudeAPIKey)
-	}
-	if !bytes.Equal(got.OpenAIAPIKey, want.OpenAIAPIKey) {
-		t.Errorf("OpenAIAPIKey = %q, want %q", got.OpenAIAPIKey, want.OpenAIAPIKey)
-	}
 	if got.ActiveLLM != want.ActiveLLM {
 		t.Errorf("ActiveLLM = %q, want %q", got.ActiveLLM, want.ActiveLLM)
 	}
@@ -57,9 +48,7 @@ func TestSaveSettings_Upsert(t *testing.T) {
 	db := newTestDB(t)
 
 	first := &Settings{
-		ClaudeAPIKey:   []byte("key-v1"),
-		OpenAIAPIKey:   []byte("openai-v1"),
-		ActiveLLM:      "claude",
+		ActiveLLM:      "gemini",
 		OllamaEndpoint: "http://localhost:11434",
 	}
 	if err := db.SaveSettings(first); err != nil {
@@ -67,9 +56,7 @@ func TestSaveSettings_Upsert(t *testing.T) {
 	}
 
 	second := &Settings{
-		ClaudeAPIKey:   []byte("key-v2"),
-		OpenAIAPIKey:   []byte("openai-v2"),
-		ActiveLLM:      "openai",
+		ActiveLLM:      "local",
 		OllamaEndpoint: "http://remote:11434",
 	}
 	if err := db.SaveSettings(second); err != nil {
@@ -81,12 +68,6 @@ func TestSaveSettings_Upsert(t *testing.T) {
 		t.Fatalf("GetSettings: %v", err)
 	}
 
-	if !bytes.Equal(got.ClaudeAPIKey, second.ClaudeAPIKey) {
-		t.Errorf("ClaudeAPIKey = %q, want %q", got.ClaudeAPIKey, second.ClaudeAPIKey)
-	}
-	if !bytes.Equal(got.OpenAIAPIKey, second.OpenAIAPIKey) {
-		t.Errorf("OpenAIAPIKey = %q, want %q", got.OpenAIAPIKey, second.OpenAIAPIKey)
-	}
 	if got.ActiveLLM != second.ActiveLLM {
 		t.Errorf("ActiveLLM = %q, want %q", got.ActiveLLM, second.ActiveLLM)
 	}
@@ -98,7 +79,7 @@ func TestSaveSettings_Upsert(t *testing.T) {
 func TestSaveSettings_InvalidActiveLLM(t *testing.T) {
 	db := newTestDB(t)
 
-	invalid := []string{"gpt4", "anthropic", "", "LOCAL", "Claude"}
+	invalid := []string{"claude", "openai", "free", "gpt4", "anthropic", "", "LOCAL", "Gemini"}
 	for _, llm := range invalid {
 		s := &Settings{
 			ActiveLLM:      llm,
@@ -113,7 +94,7 @@ func TestSaveSettings_InvalidActiveLLM(t *testing.T) {
 func TestSaveSettings_ValidActiveLLMValues(t *testing.T) {
 	db := newTestDB(t)
 
-	for _, llm := range []string{"claude", "openai", "local"} {
+	for _, llm := range []string{"gemini", "local"} {
 		s := &Settings{
 			ActiveLLM:      llm,
 			OllamaEndpoint: "http://localhost:11434",
@@ -132,31 +113,6 @@ func TestSaveSettings_ValidActiveLLMValues(t *testing.T) {
 	}
 }
 
-func TestSaveSettings_NilAPIKeys(t *testing.T) {
-	db := newTestDB(t)
-
-	s := &Settings{
-		ClaudeAPIKey:   nil,
-		OpenAIAPIKey:   nil,
-		ActiveLLM:      "local",
-		OllamaEndpoint: "http://localhost:11434",
-	}
-	if err := db.SaveSettings(s); err != nil {
-		t.Fatalf("SaveSettings with nil keys: %v", err)
-	}
-
-	got, err := db.GetSettings()
-	if err != nil {
-		t.Fatalf("GetSettings: %v", err)
-	}
-	if got.ClaudeAPIKey != nil {
-		t.Errorf("ClaudeAPIKey = %v, want nil", got.ClaudeAPIKey)
-	}
-	if got.OpenAIAPIKey != nil {
-		t.Errorf("OpenAIAPIKey = %v, want nil", got.OpenAIAPIKey)
-	}
-}
-
 func TestSaveSettings_NilSettings(t *testing.T) {
 	db := newTestDB(t)
 
@@ -165,48 +121,12 @@ func TestSaveSettings_NilSettings(t *testing.T) {
 	}
 }
 
-func TestSaveAndGetSettings_StravaCredentials(t *testing.T) {
+func TestSaveAndGetSettings_OllamaModel(t *testing.T) {
 	db := newTestDB(t)
 
 	want := &Settings{
-		ClaudeAPIKey:       []byte("claude-key"),
-		OpenAIAPIKey:       []byte("openai-key"),
-		ActiveLLM:          "claude",
-		OllamaEndpoint:     "http://localhost:11434",
-		StravaClientID:     []byte("strava-client-id-123"),
-		StravaClientSecret: []byte("strava-secret-456"),
-	}
-
-	if err := db.SaveSettings(want); err != nil {
-		t.Fatalf("SaveSettings: %v", err)
-	}
-
-	got, err := db.GetSettings()
-	if err != nil {
-		t.Fatalf("GetSettings: %v", err)
-	}
-	if got == nil {
-		t.Fatal("expected non-nil settings")
-	}
-
-	if !bytes.Equal(got.StravaClientID, want.StravaClientID) {
-		t.Errorf("StravaClientID = %q, want %q", got.StravaClientID, want.StravaClientID)
-	}
-	if !bytes.Equal(got.StravaClientSecret, want.StravaClientSecret) {
-		t.Errorf("StravaClientSecret = %q, want %q", got.StravaClientSecret, want.StravaClientSecret)
-	}
-}
-
-func TestSaveAndGetSettings_ModelFields(t *testing.T) {
-	db := newTestDB(t)
-
-	want := &Settings{
-		ClaudeAPIKey:   []byte("claude-key"),
-		OpenAIAPIKey:   []byte("openai-key"),
-		ActiveLLM:      "claude",
+		ActiveLLM:      "local",
 		OllamaEndpoint: "http://localhost:11434",
-		ClaudeModel:    "claude-opus-4-20250514",
-		OpenAIModel:    "gpt-4o-mini",
 		OllamaModel:    "llama3.1",
 	}
 
@@ -222,12 +142,6 @@ func TestSaveAndGetSettings_ModelFields(t *testing.T) {
 		t.Fatal("expected non-nil settings")
 	}
 
-	if got.ClaudeModel != want.ClaudeModel {
-		t.Errorf("ClaudeModel = %q, want %q", got.ClaudeModel, want.ClaudeModel)
-	}
-	if got.OpenAIModel != want.OpenAIModel {
-		t.Errorf("OpenAIModel = %q, want %q", got.OpenAIModel, want.OpenAIModel)
-	}
 	if got.OllamaModel != want.OllamaModel {
 		t.Errorf("OllamaModel = %q, want %q", got.OllamaModel, want.OllamaModel)
 	}
@@ -250,12 +164,6 @@ func TestSaveAndGetSettings_EmptyModelFieldsDefaultToEmpty(t *testing.T) {
 		t.Fatalf("GetSettings: %v", err)
 	}
 
-	if got.ClaudeModel != "" {
-		t.Errorf("ClaudeModel = %q, want empty", got.ClaudeModel)
-	}
-	if got.OpenAIModel != "" {
-		t.Errorf("OpenAIModel = %q, want empty", got.OpenAIModel)
-	}
 	if got.OllamaModel != "" {
 		t.Errorf("OllamaModel = %q, want empty", got.OllamaModel)
 	}

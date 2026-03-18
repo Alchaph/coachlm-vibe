@@ -3,13 +3,14 @@
  * Covers: export triggers save dialog, returns success on confirm, silent cancel on dialog dismiss.
  */
 import { test, expect } from '@playwright/test'
-import path from 'path'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
 
 test.beforeEach(async ({ page }) => {
-  await page.addInitScript({ path: path.join(__dirname, 'mocks/wails.ts') })
+  await page.addInitScript({ path: join(dirname(fileURLToPath(import.meta.url)), 'mocks/wails.ts') })
   await page.goto('/')
   await page.click('button[title="Settings"]')
-  await expect(page.locator('.settings select#active-backend')).toBeVisible()
+  await expect(page.locator('.settings')).toBeVisible()
 })
 
 test('Export Context button is visible', async ({ page }) => {
@@ -18,7 +19,7 @@ test('Export Context button is visible', async ({ page }) => {
 
 test('clicking Export Context shows success feedback when dialog returns path', async ({ page }) => {
   // Default mock already returns '/tmp/mock-export.coachctx' from DialogSaveFile
-  await page.click('button', { hasText: 'Export Context' })
+  await page.locator('button', { hasText: 'Export Context' }).click()
   await expect(page.locator('.feedback.success')).toBeVisible({ timeout: 3000 })
   await expect(page.locator('.feedback.success')).toContainText('Context exported successfully')
 })
@@ -30,9 +31,9 @@ test('cancelling export dialog shows no error', async ({ page }) => {
   })
   await page.reload()
   await page.click('button[title="Settings"]')
-  await expect(page.locator('.settings select#active-backend')).toBeVisible()
+  await expect(page.locator('.settings')).toBeVisible()
 
-  await page.click('button', { hasText: 'Export Context' })
+  await page.locator('button', { hasText: 'Export Context' }).click()
 
   // No feedback should appear (neither success nor error) for a cancel
   await page.waitForTimeout(500)
@@ -45,9 +46,9 @@ test('export error is shown if ExportContext fails', async ({ page }) => {
   })
   await page.reload()
   await page.click('button[title="Settings"]')
-  await expect(page.locator('.settings select#active-backend')).toBeVisible()
+  await expect(page.locator('.settings')).toBeVisible()
 
-  await page.click('button', { hasText: 'Export Context' })
+  await page.locator('button', { hasText: 'Export Context' }).click()
   await expect(page.locator('.feedback.error')).toBeVisible({ timeout: 3000 })
   await expect(page.locator('.feedback.error')).toContainText('disk full')
 })

@@ -1,7 +1,7 @@
 ---
 id: S43
 title: Advice-first coaching with on-demand plans
-status: draft
+status: done
 created: 2026-03-17
 updated: 2026-03-17
 ---
