@@ -52,16 +52,14 @@ jobs:
         working-directory: frontend
 
       - name: Build
-        # ldflags inject API keys at build time:
-        #   GEMINI_API_KEY        → internal/llm.builtinGeminiApiKey
+        # ldflags inject credentials at build time:
         #   STRAVA_CLIENT_ID      → internal/strava.builtinClientID
         #   STRAVA_CLIENT_SECRET  → internal/strava.builtinClientSecret
         # Add these as GitHub Actions secrets before the first release.
         run: >-
           wails build ${{ matrix.build-flags }}
           -ldflags
-          "-X coachlm/internal/llm.builtinGeminiApiKey=${{ secrets.GEMINI_API_KEY }}
-          -X coachlm/internal/strava.builtinClientID=${{ secrets.STRAVA_CLIENT_ID }}
+          "-X coachlm/internal/strava.builtinClientID=${{ secrets.STRAVA_CLIENT_ID }}
           -X coachlm/internal/strava.builtinClientSecret=${{ secrets.STRAVA_CLIENT_SECRET }}"
 
       - name: Package (Linux)

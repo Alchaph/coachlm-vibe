@@ -18,9 +18,9 @@ Connect your Strava account, chat with an AI coach that knows your training hist
 - View recent runs with distance, pace, heart rate, and cadence
 - Import FIT files directly from Garmin, Wahoo, and other devices
 
-**🤖 Choose your AI**
-- Use Claude, ChatGPT, or run a local model with Ollama (no internet needed after setup)
-- Your API keys are stored securely — never sent anywhere
+**🤖 Powered by Ollama**
+- Runs any local LLM through Ollama — no cloud accounts, no API keys, no internet needed
+- Works with Llama, Mistral, Gemma, and any other Ollama-supported model
 
 **🔒 Your data stays yours**
 - Everything runs locally on your computer
@@ -59,7 +59,7 @@ chmod +x coachlm-linux
 
 When you launch CoachLM for the first time, a setup wizard will help you:
 1. Connect your Strava account (optional)
-2. Choose an AI model (Claude, ChatGPT, or local Ollama)
+2. Configure your Ollama endpoint and model
 3. Set up your athlete profile (age, max heart rate, goals)
 
 That's it — you're ready to chat with your coach!
@@ -89,9 +89,9 @@ CoachLM is built with:
 - **Backend**: Go with Wails v2
 - **Frontend**: Svelte + TypeScript
 - **Database**: SQLite (pure Go, no external dependencies)
-- **LLM**: Supports Claude, OpenAI, and Ollama APIs
+- **LLM**: Ollama (local models only — no cloud dependency)
 
-All your data is encrypted with AES-256-GCM — your API keys and Strava tokens are safe.
+All your data is encrypted with AES-256-GCM — your Strava tokens are safe.
 
 ---
 

@@ -100,7 +100,6 @@ export namespace main {
 	    }
 	}
 	export class SettingsData {
-	    useLocalModel: boolean;
 	    ollamaEndpoint: string;
 	    ollamaModel: string;
 	    customSystemPrompt: string;
@@ -111,7 +110,6 @@ export namespace main {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.useLocalModel = source["useLocalModel"];
 	        this.ollamaEndpoint = source["ollamaEndpoint"];
 	        this.ollamaModel = source["ollamaModel"];
 	        this.customSystemPrompt = source["customSystemPrompt"];

@@ -9,8 +9,8 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('.settings')).toBeVisible()
 })
 
-test('Gemini 2.0 Flash label is visible in settings', async ({ page }) => {
-  await expect(page.locator('.gemini-label')).toContainText('Gemini 2.0 Flash')
+test('Ollama label is visible in settings', async ({ page }) => {
+  await expect(page.locator('.ollama-label')).toContainText('Ollama')
 })
 
 test('No Claude or OpenAI fields exist in settings', async ({ page }) => {
@@ -28,12 +28,10 @@ test('Saving settings succeeds', async ({ page }) => {
   await expect(page.locator('.feedback.success')).toContainText('Settings saved')
 })
 
-test('Advanced Ollama section is collapsible', async ({ page }) => {
-  const summary = page.locator('details.advanced-section summary')
-  await expect(summary).toBeVisible()
-  
-  await expect(page.locator('details.advanced-section')).not.toHaveAttribute('open', '')
-  
-  await summary.click()
-  await expect(page.locator('details.advanced-section')).toHaveAttribute('open', '')
+test('Ollama endpoint field is visible', async ({ page }) => {
+  await expect(page.locator('#ollama-endpoint')).toBeVisible()
+})
+
+test('Ollama model field is visible', async ({ page }) => {
+  await expect(page.locator('#ollama-model')).toBeVisible()
 })

@@ -117,6 +117,9 @@ var migrations = []string{
 	`ALTER TABLE settings ADD COLUMN gdrive_refresh_token BLOB`,
 	`ALTER TABLE settings ADD COLUMN gdrive_token_expiry DATETIME`,
 	`ALTER TABLE settings ADD COLUMN gdrive_client_id TEXT NOT NULL DEFAULT ''`,
+
+	// Ollama-only migration: gemini backend removed
+	`UPDATE settings SET active_llm = 'local' WHERE active_llm = 'gemini'`,
 }
 
 func (db *DB) migrate() error {

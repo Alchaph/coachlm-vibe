@@ -5,7 +5,6 @@
   const dispatch = createEventDispatcher()
 
   let step = 1
-  let useLocalModel = false
   let connectingStrava = false
   let stravaConnected = false
   let stravaCredentialsAvailable = false
@@ -103,7 +102,6 @@
     error = ''
     try {
       await SaveSettingsData({
-        useLocalModel: false,
         ollamaEndpoint: 'http://localhost:11434',
         ollamaModel: '',
         customSystemPrompt: ''

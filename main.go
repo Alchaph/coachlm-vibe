@@ -67,27 +67,8 @@ func createLLMClient(db *storage.DB) (llm.LLM, error) {
 	}
 
 	if settings == nil {
-		client, err := llm.NewGemini(llm.GeminiConfig{})
-		if err != nil {
-			return llm.NewLocal(llm.LocalConfig{}), nil
-		}
-		return client, nil
+		return llm.NewLocal(llm.LocalConfig{}), nil
 	}
 
-	switch settings.ActiveLLM {
-	case "gemini":
-		client, err := llm.NewGemini(llm.GeminiConfig{})
-		if err != nil {
-			return nil, fmt.Errorf("gemini initialization failed: %w", err)
-		}
-		return client, nil
-	case "local":
-		return llm.NewLocal(llm.LocalConfig{Endpoint: settings.OllamaEndpoint, Model: settings.OllamaModel}), nil
-	default:
-		client, err := llm.NewGemini(llm.GeminiConfig{})
-		if err != nil {
-			return llm.NewLocal(llm.LocalConfig{}), nil
-		}
-		return client, nil
-	}
+	return llm.NewLocal(llm.LocalConfig{Endpoint: settings.OllamaEndpoint, Model: settings.OllamaModel}), nil
 }

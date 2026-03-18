@@ -25,8 +25,7 @@ type Settings struct {
 }
 
 var validLLMs = map[string]bool{
-	"gemini": true,
-	"local":  true,
+	"local": true,
 }
 
 func validateSettings(s *Settings) error {
@@ -34,7 +33,7 @@ func validateSettings(s *Settings) error {
 		return errors.New("settings is nil")
 	}
 	if !validLLMs[s.ActiveLLM] {
-		return fmt.Errorf("active_llm must be one of gemini, local; got %q", s.ActiveLLM)
+		return fmt.Errorf("active_llm must be local; got %q", s.ActiveLLM)
 	}
 	return nil
 }

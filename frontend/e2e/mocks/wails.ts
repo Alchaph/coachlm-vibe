@@ -13,7 +13,6 @@
 // Default mock state — can be overridden per-test
 // ---------------------------------------------------------------------------
 const DEFAULT_SETTINGS = {
-  useLocalModel: false,
   ollamaEndpoint: 'http://localhost:11434',
   ollamaModel: '',
   customSystemPrompt: '',

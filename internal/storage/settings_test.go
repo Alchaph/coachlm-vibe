@@ -20,7 +20,7 @@ func TestSaveAndGetSettings_RoundTrip(t *testing.T) {
 	db := newTestDB(t)
 
 	want := &Settings{
-		ActiveLLM:      "gemini",
+		ActiveLLM:      "local",
 		OllamaEndpoint: "http://localhost:11434",
 	}
 
@@ -48,7 +48,7 @@ func TestSaveSettings_Upsert(t *testing.T) {
 	db := newTestDB(t)
 
 	first := &Settings{
-		ActiveLLM:      "gemini",
+		ActiveLLM:      "local",
 		OllamaEndpoint: "http://localhost:11434",
 	}
 	if err := db.SaveSettings(first); err != nil {
@@ -79,7 +79,7 @@ func TestSaveSettings_Upsert(t *testing.T) {
 func TestSaveSettings_InvalidActiveLLM(t *testing.T) {
 	db := newTestDB(t)
 
-	invalid := []string{"claude", "openai", "free", "gpt4", "anthropic", "", "LOCAL", "Gemini"}
+	invalid := []string{"claude", "openai", "free", "gpt4", "anthropic", "", "LOCAL", "Gemini", "gemini"}
 	for _, llm := range invalid {
 		s := &Settings{
 			ActiveLLM:      llm,
@@ -94,7 +94,7 @@ func TestSaveSettings_InvalidActiveLLM(t *testing.T) {
 func TestSaveSettings_ValidActiveLLMValues(t *testing.T) {
 	db := newTestDB(t)
 
-	for _, llm := range []string{"gemini", "local"} {
+	for _, llm := range []string{"local"} {
 		s := &Settings{
 			ActiveLLM:      llm,
 			OllamaEndpoint: "http://localhost:11434",

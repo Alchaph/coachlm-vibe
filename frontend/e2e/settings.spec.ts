@@ -22,12 +22,13 @@ test('AI Model section is visible', async ({ page }) => {
   await expect(page.locator('section h2').first()).toContainText('AI Model')
 })
 
-test('Gemini 2.0 Flash label is visible', async ({ page }) => {
-  await expect(page.locator('.gemini-label')).toContainText('Gemini 2.0 Flash')
+test('Ollama label is visible', async ({ page }) => {
+  await expect(page.locator('.ollama-label')).toContainText('Ollama')
 })
 
-test('Advanced Ollama section is present', async ({ page }) => {
-  await expect(page.locator('details.advanced-section summary')).toBeVisible()
+test('Ollama endpoint and model fields are visible', async ({ page }) => {
+  await expect(page.locator('#ollama-endpoint')).toBeVisible()
+  await expect(page.locator('#ollama-model')).toBeVisible()
 })
 
 test('No Claude or OpenAI fields exist', async ({ page }) => {

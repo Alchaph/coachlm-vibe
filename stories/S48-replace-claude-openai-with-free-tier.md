@@ -1,12 +1,12 @@
 ---
 id: S48
-title: Replace Claude and ChatGPT backends with Gemini 2.0 Flash as the default model
+title: Migrate to Ollama-only — remove Gemini backend, make local LLM the sole backend
 status: done
 created: 2026-03-18
 updated: 2026-03-18
 ---
 
-# S48 — Replace Claude and ChatGPT backends with Gemini 2.0 Flash as the default model
+# S48 — Migrate to Ollama-only — remove Gemini backend, make local LLM the sole backend
 
 ## User story
 
@@ -108,3 +108,4 @@ Ollama/local support stays unchanged. Advanced users who want full privacy or a 
 | 2026-03-18 | draft | Updated: backend renamed from "free" to "gemini"; UI label is "Gemini 2.0 Flash" throughout |
 | 2026-03-18 | in-progress | Implementation started |
 | 2026-03-18 | done | All backend + frontend changes complete, go test + 69/69 e2e pass |
+| 2026-03-18 | done | Pivoted from Gemini to Ollama-only: removed Gemini backend entirely, Ollama is now sole LLM. README updated. go test + 99/99 e2e pass |

@@ -68,7 +68,6 @@ func TestSaveAndGetSettingsData_RoundTrip(t *testing.T) {
 	app := newTestApp(t)
 
 	want := SettingsData{
-		UseLocalModel:  true,
 		OllamaEndpoint: "http://localhost:11434",
 		OllamaModel:    "llama3.1",
 	}
@@ -85,9 +84,6 @@ func TestSaveAndGetSettingsData_RoundTrip(t *testing.T) {
 		t.Fatal("expected non-nil settings")
 	}
 
-	if got.UseLocalModel != want.UseLocalModel {
-		t.Errorf("UseLocalModel = %v, want %v", got.UseLocalModel, want.UseLocalModel)
-	}
 	if got.OllamaEndpoint != want.OllamaEndpoint {
 		t.Errorf("OllamaEndpoint = %q, want %q", got.OllamaEndpoint, want.OllamaEndpoint)
 	}
@@ -189,7 +185,6 @@ func TestReloadLLMClient(t *testing.T) {
 	app := newTestApp(t)
 
 	if err := app.SaveSettingsData(SettingsData{
-		UseLocalModel:  true,
 		OllamaEndpoint: "http://localhost:11434",
 	}); err != nil {
 		t.Fatalf("SaveSettingsData: %v", err)

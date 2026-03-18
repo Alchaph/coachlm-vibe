@@ -21,7 +21,6 @@
   // Wails Dialog functions are available on window.runtime
   const runtime: any = (window as any).runtime
 
-  let useLocalModel = false
   let ollamaEndpoint = 'http://localhost:11434'
   let ollamaModel = ''
   let customSystemPrompt = ''
@@ -121,7 +120,6 @@
       ])
 
       if (settings) {
-        useLocalModel = settings.useLocalModel || false
         ollamaEndpoint = settings.ollamaEndpoint || 'http://localhost:11434'
         ollamaModel = settings.ollamaModel || ''
         customSystemPrompt = settings.customSystemPrompt || ''
@@ -148,7 +146,6 @@
       ])
 
       if (settings) {
-        useLocalModel = settings.useLocalModel || false
         ollamaEndpoint = settings.ollamaEndpoint || 'http://localhost:11434'
         ollamaModel = settings.ollamaModel || ''
         customSystemPrompt = settings.customSystemPrompt || ''
@@ -171,7 +168,6 @@
     saving = true
     try {
       await SaveSettingsData({
-        useLocalModel,
         ollamaEndpoint,
         ollamaModel,
         customSystemPrompt
@@ -188,7 +184,6 @@
     connectingStrava = true
     try {
       await SaveSettingsData({
-        useLocalModel,
         ollamaEndpoint,
         ollamaModel,
         customSystemPrompt
@@ -285,45 +280,33 @@
 
     <section>
       <h2>AI Model</h2>
-      <p class="gemini-label">Powered by Gemini 2.0 Flash</p>
+      <p class="ollama-label">Powered by Ollama (local)</p>
 
-      <details class="advanced-section">
-        <summary>Advanced: Local Model (Ollama)</summary>
-        <div class="advanced-content">
-          <label class="field-label">
-            <input type="checkbox" bind:checked={useLocalModel} />
-            Use local Ollama model instead of Gemini
-          </label>
-
-          {#if useLocalModel}
-            <label class="field-label" for="ollama-endpoint">Ollama Endpoint</label>
-            <input id="ollama-endpoint" type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
-            <label class="field-label" for="ollama-model">Model</label>
-            <div class="input-row">
-              <input id="ollama-model" type="text" bind:value={ollamaModel} placeholder="llama3" />
-              <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
-                {fetchingModels ? '...' : 'Fetch'}
-              </button>
-            </div>
-            {#if modelFetchError}
-              <p class="model-fetch-error">{modelFetchError}</p>
-            {/if}
-            {#if ollamaModels.length > 0}
-              <div class="model-chips">
-                {#each ollamaModels as model}
-                  <button
-                    class="model-chip"
-                    class:selected={ollamaModel === model}
-                    on:click={() => ollamaModel = model}
-                  >
-                    {model}
-                  </button>
-                {/each}
-              </div>
-            {/if}
-          {/if}
+      <label class="field-label" for="ollama-endpoint">Ollama Endpoint</label>
+      <input id="ollama-endpoint" type="text" bind:value={ollamaEndpoint} placeholder="http://localhost:11434" />
+      <label class="field-label" for="ollama-model">Model</label>
+      <div class="input-row">
+        <input id="ollama-model" type="text" bind:value={ollamaModel} placeholder="llama3" />
+        <button class="toggle-btn" on:click={fetchOllamaModels} disabled={fetchingModels}>
+          {fetchingModels ? '...' : 'Fetch'}
+        </button>
+      </div>
+      {#if modelFetchError}
+        <p class="model-fetch-error">{modelFetchError}</p>
+      {/if}
+      {#if ollamaModels.length > 0}
+        <div class="model-chips">
+          {#each ollamaModels as model}
+            <button
+              class="model-chip"
+              class:selected={ollamaModel === model}
+              on:click={() => ollamaModel = model}
+            >
+              {model}
+            </button>
+          {/each}
         </div>
-      </details>
+      {/if}
     </section>
 
     <section>
@@ -533,39 +516,11 @@
     font-style: italic;
   }
 
-  .gemini-label {
+  .ollama-label {
     color: #22c55e;
     font-size: 1rem;
     margin-bottom: 16px;
     font-weight: 500;
-  }
-
-  .advanced-section {
-    margin-top: 16px;
-  }
-
-  .advanced-section summary {
-    font-size: 0.8rem;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    font-weight: 600;
-    cursor: pointer;
-    user-select: none;
-    outline: none;
-  }
-
-  .advanced-section summary:hover {
-    color: #e2e8f0;
-  }
-
-  .advanced-content {
-    padding-top: 12px;
-  }
-
-  .advanced-content input[type="checkbox"] {
-    margin-right: 8px;
-    vertical-align: middle;
   }
 
   select,

@@ -56,7 +56,6 @@ type InsightData struct {
 }
 
 type SettingsData struct {
-	UseLocalModel      bool   `json:"useLocalModel"`
 	OllamaEndpoint     string `json:"ollamaEndpoint"`
 	OllamaModel        string `json:"ollamaModel"`
 	CustomSystemPrompt string `json:"customSystemPrompt"`
@@ -213,7 +212,6 @@ func (a *App) GetSettingsData() (*SettingsData, error) {
 		return nil, nil
 	}
 	return &SettingsData{
-		UseLocalModel:      s.ActiveLLM == "local",
 		OllamaEndpoint:     s.OllamaEndpoint,
 		OllamaModel:        s.OllamaModel,
 		CustomSystemPrompt: s.CustomSystemPrompt,
@@ -221,16 +219,30 @@ func (a *App) GetSettingsData() (*SettingsData, error) {
 }
 
 func (a *App) SaveSettingsData(data SettingsData) error {
-	activeLLM := "gemini"
-	if data.UseLocalModel {
-		activeLLM = "local"
+	existing, err := a.db.GetSettings()
+	if err != nil {
+		return fmt.Errorf("get existing settings: %w", err)
 	}
+
 	s := &storage.Settings{
-		ActiveLLM:          activeLLM,
+		ActiveLLM:          "local",
 		OllamaEndpoint:     data.OllamaEndpoint,
 		OllamaModel:        data.OllamaModel,
 		CustomSystemPrompt: data.CustomSystemPrompt,
 	}
+
+	if existing != nil {
+		s.CloudProvider = existing.CloudProvider
+		s.CloudEndpoint = existing.CloudEndpoint
+		s.CloudBucket = existing.CloudBucket
+		s.CloudAccessKey = existing.CloudAccessKey
+		s.CloudSecretKey = existing.CloudSecretKey
+		s.GDriveAccessToken = existing.GDriveAccessToken
+		s.GDriveRefreshToken = existing.GDriveRefreshToken
+		s.GDriveTokenExpiry = existing.GDriveTokenExpiry
+		s.GDriveClientID = existing.GDriveClientID
+	}
+
 	if err := a.db.SaveSettings(s); err != nil {
 		return fmt.Errorf("save settings: %w", err)
 	}
