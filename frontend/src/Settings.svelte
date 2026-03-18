@@ -12,7 +12,8 @@
     ConnectGoogleDrive,
     DisconnectCloud,
     SyncNow,
-    GetSyncStatus
+    GetSyncStatus,
+    ResetApp
   } from '../wailsjs/go/main/App.js'
   import { cloudsync } from '../wailsjs/go/models'
 
@@ -33,13 +34,15 @@
   let modelFetchError = ''
 
   let syncStatus: cloudsync.SyncStatus | null = null
-  let cloudProvider = 'S3-Compatible'
+  let cloudProvider = 'Google Drive'
   let s3Endpoint = ''
   let s3Bucket = ''
   let s3AccessKey = ''
   let s3SecretKey = ''
   let connectingCloud = false
   let syncingCloud = false
+
+  let resetting = false
 
   async function fetchOllamaModels() {
     fetchingModels = true
@@ -217,9 +220,22 @@
       syncingCloud = false
     }
   }
+
+  async function resetApp() {
+    if (!confirm('Reset CoachLM? This will erase ALL data (settings, activities, chat history, Strava connection) and return to the setup wizard. This cannot be undone.')) return
+    resetting = true
+    try {
+      await ResetApp()
+      window.location.reload()
+    } catch (e: any) {
+      showFeedback(e?.message || 'Failed to reset', 'error')
+      resetting = false
+    }
+  }
 </script>
 
 <div class="settings">
+  <div class="settings-inner">
   {#if loading}
     <div class="state-msg">
       <div class="spinner"></div>
@@ -354,15 +370,27 @@
         {saving ? 'Saving...' : 'Save Settings'}
       </button>
     </div>
+
+    <section class="danger-zone">
+      <h2>Danger Zone</h2>
+      <p class="danger-desc">Erase all data and return to the setup wizard.</p>
+      <button class="btn btn-danger" on:click={resetApp} disabled={resetting}>
+        {resetting ? 'Resetting...' : 'Reset App'}
+      </button>
+    </section>
   {/if}
+  </div>
 </div>
 
 <style>
   .settings {
     flex: 1;
     overflow-y: auto;
-    padding: 24px 24px;
+  }
+
+  .settings-inner {
     max-width: 700px;
+    padding: 24px 24px;
   }
 
   .state-msg {
@@ -653,5 +681,22 @@
 
   .s3-fields {
     margin-top: 12px;
+  }
+
+  .danger-zone {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(220, 53, 69, 0.3);
+    border-bottom: none;
+  }
+
+  .danger-zone h2 {
+    color: #f87171;
+  }
+
+  .danger-desc {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin-bottom: 12px;
   }
 </style>

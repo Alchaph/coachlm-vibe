@@ -58,6 +58,8 @@ export function IsFirstRun():Promise<boolean>;
 
 export function ListRaces():Promise<Array<plan.Race>>;
 
+export function ResetApp():Promise<void>;
+
 export function SaveInsight(arg1:string):Promise<void>;
 
 export function SaveProfileData(arg1:main.ProfileData):Promise<void>;

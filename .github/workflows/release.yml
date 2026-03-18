@@ -60,7 +60,8 @@ jobs:
           wails build ${{ matrix.build-flags }}
           -ldflags
           "-X coachlm/internal/strava.builtinClientID=${{ secrets.STRAVA_CLIENT_ID }}
-          -X coachlm/internal/strava.builtinClientSecret=${{ secrets.STRAVA_CLIENT_SECRET }}"
+          -X coachlm/internal/strava.builtinClientSecret=${{ secrets.STRAVA_CLIENT_SECRET }}
+          -X main.builtinGoogleClientID=${{ secrets.GOOGLE_CLIENT_ID }}"
 
       - name: Package (Linux)
         if: runner.os == 'Linux'

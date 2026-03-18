@@ -28,6 +28,19 @@ import (
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
+// builtinGoogleClientID is set via -ldflags "-X main.builtinGoogleClientID=..."
+var builtinGoogleClientID = ""
+
+func resolveGoogleClientID() (string, bool) {
+	if builtinGoogleClientID != "" {
+		return builtinGoogleClientID, true
+	}
+	if id := os.Getenv("GOOGLE_CLIENT_ID"); id != "" {
+		return id, true
+	}
+	return "", false
+}
+
 type App struct {
 	ctx         context.Context
 	db          *storage.DB
@@ -276,6 +289,17 @@ func (a *App) IsFirstRun() (bool, error) {
 	return s == nil, nil
 }
 
+func (a *App) ResetApp() error {
+	if err := a.db.ResetAll(); err != nil {
+		return fmt.Errorf("reset app: %w", err)
+	}
+	a.sessionID = ""
+	a.llmClient = nil
+	a.syncManager = nil
+	a.planStore = plan.NewStorage(a.db)
+	return nil
+}
+
 func (a *App) GetStravaAuthStatus() (map[string]interface{}, error) {
 	accessToken, _, _, err := a.db.GetTokens()
 	if err != nil {
@@ -299,6 +323,11 @@ func resolveStravaCredentials() (clientID, clientSecret string, ok bool) {
 
 func (a *App) GetStravaCredentialsAvailable() bool {
 	_, _, ok := resolveStravaCredentials()
+	return ok
+}
+
+func (a *App) GetGDriveCredentialsAvailable() bool {
+	_, ok := resolveGoogleClientID()
 	return ok
 }
 
@@ -855,7 +884,10 @@ func (a *App) ConnectGoogleDrive() error {
 		return fmt.Errorf("find port: %w", err)
 	}
 
-	clientID := "YOUR_GOOGLE_CLIENT_ID"
+	clientID, ok := resolveGoogleClientID()
+	if !ok {
+		return errors.New("google drive: no client ID available — set GOOGLE_CLIENT_ID or build with ldflags")
+	}
 	redirectURI := fmt.Sprintf("http://localhost:%d/callback", port)
 
 	codeVerifier, codeChallenge := generatePKCE()

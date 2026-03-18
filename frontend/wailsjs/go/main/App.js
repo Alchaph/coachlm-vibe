@@ -110,6 +110,10 @@ export function ListRaces() {
   return window['go']['main']['App']['ListRaces']();
 }
 
+export function ResetApp() {
+  return window['go']['main']['App']['ResetApp']();
+}
+
 export function SaveInsight(arg1) {
   return window['go']['main']['App']['SaveInsight'](arg1);
 }
