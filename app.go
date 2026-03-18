@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -814,8 +815,44 @@ func (a *App) ExportContext(filePath string) error {
 	return exportimport.Export(a.db, filePath)
 }
 
+func (a *App) ExportContextWithDialog() error {
+	defaultFilename := fmt.Sprintf("coach-context-%s.coachctx", time.Now().Format("2006-01-02"))
+	filePath, err := wailsRuntime.SaveFileDialog(a.ctx, wailsRuntime.SaveDialogOptions{
+		DefaultFilename: defaultFilename,
+		Filters: []wailsRuntime.FileFilter{
+			{DisplayName: "CoachLM Context", Pattern: "*.coachctx"},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("save dialog: %w", err)
+	}
+	if filePath == "" {
+		return nil // user cancelled
+	}
+	return exportimport.Export(a.db, filePath)
+}
+
 func (a *App) ImportContext(filePath string, replaceAll bool) error {
 	err := exportimport.Import(a.db, filePath, replaceAll)
+	if err == nil && a.syncManager != nil {
+		a.syncManager.TriggerSync()
+	}
+	return err
+}
+
+func (a *App) ImportContextWithDialog(replaceAll bool) error {
+	filePath, err := wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Filters: []wailsRuntime.FileFilter{
+			{DisplayName: "CoachLM Context", Pattern: "*.coachctx"},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("open dialog: %w", err)
+	}
+	if filePath == "" {
+		return nil // user cancelled
+	}
+	err = exportimport.Import(a.db, filePath, replaceAll)
 	if err == nil && a.syncManager != nil {
 		a.syncManager.TriggerSync()
 	}
@@ -1195,16 +1232,8 @@ func randomPort() (int, error) {
 func generatePKCE() (verifier, challenge string) {
 	b := make([]byte, 32)
 	_, _ = rand.Read(b)
-	verifier = strings.TrimRight(
-		strings.NewReplacer("+", "-", "/", "_").Replace(
-			fmt.Sprintf("%x", b),
-		), "=",
-	)
+	verifier = base64.RawURLEncoding.EncodeToString(b)
 	h := sha256.Sum256([]byte(verifier))
-	challenge = strings.TrimRight(
-		strings.NewReplacer("+", "-", "/", "_").Replace(
-			fmt.Sprintf("%x", h),
-		), "=",
-	)
+	challenge = base64.RawURLEncoding.EncodeToString(h[:])
 	return verifier, challenge
 }

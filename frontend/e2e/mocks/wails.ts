@@ -198,7 +198,9 @@ window.go = {
       GetContextPreview: () => mockAsync('# CoachLM — Running Coach\n\n## Role\nYou are CoachLM...'),
 
       ExportContext: (filePath) => mockAsync(null),
+      ExportContextWithDialog: () => mockAsync(null),
       ImportContext: (filePath, replaceAll) => mockAsync(null),
+      ImportContextWithDialog: (replaceAll) => mockAsync(null),
 
       ImportFITFile: (filePath) => mockAsync(null),
 
@@ -281,10 +283,6 @@ window.go = {
 
 // Install window.runtime (Wails dialog functions)
 window.runtime = {
-  DialogSaveFile: (opts) =>
-    mockAsync('/tmp/mock-export.coachctx'),
-  DialogOpenFile: (opts) =>
-    mockAsync('/tmp/mock-import.coachctx'),
   EventsOn: (event, callback) => () => {},
   EventsOff: (event) => {},
   BrowserOpenURL: (url) => {},

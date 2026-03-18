@@ -22,6 +22,8 @@ export function ExportChatSessions():Promise<Array<number>>;
 
 export function ExportContext(arg1:string):Promise<void>;
 
+export function ExportContextWithDialog():Promise<void>;
+
 export function GeneratePlan(arg1:string):Promise<plan.TrainingPlan>;
 
 export function GetActivePlan():Promise<plan.TrainingPlan>;
@@ -51,6 +53,8 @@ export function GetSyncStatus():Promise<cloudsync.SyncStatus>;
 export function ImportChatSessions(arg1:Array<number>,arg2:boolean):Promise<void>;
 
 export function ImportContext(arg1:string,arg2:boolean):Promise<void>;
+
+export function ImportContextWithDialog(arg1:boolean):Promise<void>;
 
 export function ImportFITFile(arg1:string):Promise<void>;
 

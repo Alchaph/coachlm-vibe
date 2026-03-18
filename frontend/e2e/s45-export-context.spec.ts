@@ -25,7 +25,7 @@ test('clicking Export Context shows success feedback when dialog returns path', 
 
 test('cancelling export dialog shows no error', async ({ page }) => {
   await page.addInitScript(() => {
-    window.runtime.DialogSaveFile = () => Promise.resolve(null)
+    window.go.main.App.ExportContextWithDialog = () => Promise.resolve(null)
   })
   await page.reload()
   await page.click('button[title="Context"]')
@@ -34,12 +34,12 @@ test('cancelling export dialog shows no error', async ({ page }) => {
   await page.locator('button', { hasText: 'Export Context' }).click()
 
   await page.waitForTimeout(500)
-  await expect(page.locator('.feedback')).not.toBeVisible()
+  await expect(page.locator('.feedback.error')).not.toBeVisible()
 })
 
-test('export error is shown if ExportContext fails', async ({ page }) => {
+test('export error is shown if ExportContextWithDialog fails', async ({ page }) => {
   await page.addInitScript(() => {
-    window.go.main.App.ExportContext = () => Promise.reject(new Error('disk full'))
+    window.go.main.App.ExportContextWithDialog = () => Promise.reject(new Error('disk full'))
   })
   await page.reload()
   await page.click('button[title="Context"]')

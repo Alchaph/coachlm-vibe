@@ -38,6 +38,10 @@ export function ExportContext(arg1) {
   return window['go']['main']['App']['ExportContext'](arg1);
 }
 
+export function ExportContextWithDialog() {
+  return window['go']['main']['App']['ExportContextWithDialog']();
+}
+
 export function GeneratePlan(arg1) {
   return window['go']['main']['App']['GeneratePlan'](arg1);
 }
@@ -96,6 +100,10 @@ export function ImportChatSessions(arg1, arg2) {
 
 export function ImportContext(arg1, arg2) {
   return window['go']['main']['App']['ImportContext'](arg1, arg2);
+}
+
+export function ImportContextWithDialog(arg1) {
+  return window['go']['main']['App']['ImportContextWithDialog'](arg1);
 }
 
 export function ImportFITFile(arg1) {

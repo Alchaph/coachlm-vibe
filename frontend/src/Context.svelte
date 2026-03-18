@@ -9,12 +9,10 @@
     GetActivityStats,
     GetSettingsData,
     SaveSettingsData,
-    ExportContext,
-    ImportContext
+    ExportContextWithDialog,
+    ImportContextWithDialog
   } from '../wailsjs/go/main/App.js'
   import { EventsOn } from '../wailsjs/runtime/runtime.js'
-
-  const runtime: any = (window as any).runtime
 
   let customSystemPrompt = ''
 
@@ -188,13 +186,7 @@
 
   async function exportContext() {
     try {
-      const defaultFilename = `coach-context-${new Date().toISOString().split('T')[0]}.coachctx`
-      const filePath = await runtime.DialogSaveFile({
-        defaultFilename,
-        filters: [{ name: 'CoachLM Context', pattern: '*.coachctx' }]
-      })
-      if (!filePath) return
-      await ExportContext(filePath)
+      await ExportContextWithDialog()
       showFeedback('Context exported successfully', 'success')
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to export context', 'error')
@@ -203,12 +195,8 @@
 
   async function importContext() {
     try {
-      const filePath = await runtime.DialogOpenFile({
-        filters: [{ name: 'CoachLM Context', pattern: '*.coachctx' }]
-      })
-      if (!filePath) return
       const confirmReplace = confirm('Do you want to replace all existing context data? Click Cancel to merge instead.')
-      await ImportContext(filePath, confirmReplace)
+      await ImportContextWithDialog(confirmReplace)
       showFeedback('Context imported successfully', 'success')
       
       const [profile, insightList, activityList] = await Promise.all([
