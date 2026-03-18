@@ -1,35 +1,10 @@
 # CoachLM
 
-Your personal AI running coach that lives on your computer.
+Your personal AI running coach
 
-Connect your Strava account, chat with an AI coach that knows your training history, and get personalized insights about your running — all without your data ever leaving your machine.
-
----
-
-## What can it do?
-
-**💬 Chat with a smart running coach**
-- Ask about training plans, recovery, race strategies, or anything running-related
-- The AI knows your actual running history — past workouts, pace trends, heart rate patterns
-- Save the best advice so the AI remembers it for future conversations
-
-**🏃 See your running history**
-- Auto-syncs all your Strava activities
-- View recent runs with distance, pace, heart rate, and cadence
-- Import FIT files directly from Garmin, Wahoo, and other devices
-
-**🤖 Powered by Ollama**
-- Runs any local LLM through Ollama — no cloud accounts, no API keys, no internet needed
-- Works with Llama, Mistral, Gemma, and any other Ollama-supported model
-
-**🔒 Your data stays yours**
-- Everything runs locally on your computer
-- No cloud accounts, no subscription, no data mining
-- SQLite database means you own your data — export it anytime
+Connect your Strava account, chat with an AI coach that knows your training history, and get personalized insights about your running
 
 ---
-
-## Get started
 
 ### Download
 
@@ -83,18 +58,6 @@ sudo dnf install gtk3 webkit2gtk4.1
 
 ---
 
-## Tech details (for the curious)
-
-CoachLM is built with:
-- **Backend**: Go with Wails v2
-- **Frontend**: Svelte + TypeScript
-- **Database**: SQLite (pure Go, no external dependencies)
-- **LLM**: Ollama (local models only — no cloud dependency)
-
-All your data is encrypted with AES-256-GCM — your Strava tokens are safe.
-
----
-
 ## Building from source
 
 If you're a developer and want to build it yourself:
@@ -109,9 +72,3 @@ You'll need:
 - Go 1.24+
 - Node.js 20+
 - Wails CLI: `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
-
----
-
-## License
-
-Unlicensed
