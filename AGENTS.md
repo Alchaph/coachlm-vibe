@@ -21,14 +21,58 @@ A Go desktop app (Wails v2) for runners that:
 Every task follows this exact sequence. No exceptions.
 
 ```
-1. READ   → Load the story file for the feature you are working on
-2. UPDATE → Set story status to `in-progress`
-3. BUILD  → Implement the feature exactly as specified
-4. TEST   → Run the tests; all must pass
-5. UPDATE → Set story status to `done` (or `failed` with notes)
+1. READ    → Load the story file for the feature you are working on
+2. UPDATE  → Set story status to `in-progress`
+3. BUILD   → Implement the feature exactly as specified
+4. TEST    → Run `go test ./...` (all must pass) + run e2e Playwright tests
+5. UPDATE  → Set story status to `done` (or `failed` with notes)
+6. COMMIT  → git commit with message format: `feat|fix|docs(SXX): short description`
+7. RELEASE → Create and push a semver tag (e.g. `v1.8.2`) — this triggers the release
+             pipeline which builds binaries and publishes a documented GitHub Release
+             with auto-generated notes
 ```
 
 If a story file does not exist for what you are about to build, stop and create one first.
+
+### Release versioning
+
+Tags follow `vMAJOR.MINOR.PATCH` semver:
+
+- **PATCH** bump — bug fix story (e.g. `fix:`)
+- **MINOR** bump — new feature story (e.g. `feat:`)
+- **MAJOR** bump — breaking change (rare; discuss first)
+
+Always check the latest tag before creating a new one:
+
+```bash
+git tag --sort=-v:refname | head -5
+```
+
+Use the **next semver** after the highest `vX.Y.Z` tag. Do **not** create
+`v0.XX` style tags for individual stories — every release tag must be a proper
+`vMAJOR.MINOR.PATCH` that advances the sequence.
+
+### E2e tests in CI
+
+The Playwright e2e suite lives in `frontend/e2e/`. Tests run against the Vite
+dev server and mock the Wails backend via `frontend/e2e/mocks/wails.ts`.
+
+To run locally (requires Playwright browsers installed):
+
+```bash
+cd frontend && npx playwright test
+```
+
+CI does **not** currently run e2e tests (no browser installed on the runner).
+Before pushing a release tag, verify locally that:
+1. `go test ./...` passes
+2. The Playwright suite passes (or document why a specific test is skipped)
+
+### Documented release notes
+
+The release workflow (`release.yml`) uses `generate_release_notes: true` which
+auto-populates the GitHub Release body from commit messages since the last tag.
+Write commit messages that are user-readable — they become the public changelog.
 
 ---
 

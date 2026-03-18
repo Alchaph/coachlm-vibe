@@ -1,7 +1,7 @@
 ---
 id: S47
 title: End-to-end test infrastructure with Playwright
-status: in-progress
+status: done
 created: 2026-03-17
 updated: 2026-03-17
 ---
