@@ -1,7 +1,7 @@
 ---
 id: S40
 title: Chat sessions cloud sync
-status: draft
+status: done
 created: 2026-03-17
 updated: 2026-03-17
 ---

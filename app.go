@@ -2,17 +2,21 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"coachlm/internal/cloudsync"
 	coachctx "coachlm/internal/context"
 	"coachlm/internal/exportimport"
 	"coachlm/internal/fit"
@@ -24,10 +28,11 @@ import (
 )
 
 type App struct {
-	ctx       context.Context
-	db        *storage.DB
-	llmClient llm.LLM
-	sessionID string
+	ctx         context.Context
+	db          *storage.DB
+	llmClient   llm.LLM
+	sessionID   string
+	syncManager *cloudsync.Manager
 }
 
 type ProfileData struct {
@@ -63,6 +68,10 @@ func NewApp(db *storage.DB, llmClient llm.LLM) *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	if err := a.initSyncManagerFromSettings(); err != nil {
+		fmt.Printf("Warning: cloud sync init failed: %v\n", err)
+	}
 }
 
 func (a *App) SendMessage(message string) (string, error) {
@@ -607,5 +616,393 @@ func (a *App) ExportContext(filePath string) error {
 }
 
 func (a *App) ImportContext(filePath string, replaceAll bool) error {
-	return exportimport.Import(a.db, filePath, replaceAll)
+	err := exportimport.Import(a.db, filePath, replaceAll)
+	if err == nil && a.syncManager != nil {
+		a.syncManager.TriggerSync()
+	}
+	return err
+}
+
+func (a *App) ConnectS3(endpoint, bucket, accessKey, secretKey string) error {
+	provider, err := cloudsync.NewS3(cloudsync.S3Config{
+		Endpoint:  endpoint,
+		Bucket:    bucket,
+		AccessKey: accessKey,
+		SecretKey: secretKey,
+	})
+	if err != nil {
+		return fmt.Errorf("validate s3 config: %w", err)
+	}
+
+	encKey := sha256.Sum256([]byte("coachlm-encryption-key"))
+
+	encAccessKey, err := strava.Encrypt([]byte(accessKey), encKey[:])
+	if err != nil {
+		return fmt.Errorf("encrypt access key: %w", err)
+	}
+	encSecretKey, err := strava.Encrypt([]byte(secretKey), encKey[:])
+	if err != nil {
+		return fmt.Errorf("encrypt secret key: %w", err)
+	}
+
+	settings, err := a.db.GetSettings()
+	if err != nil {
+		return fmt.Errorf("get settings: %w", err)
+	}
+	if settings == nil {
+		return errors.New("settings not initialized")
+	}
+
+	settings.CloudProvider = "s3"
+	settings.CloudEndpoint = endpoint
+	settings.CloudBucket = bucket
+	settings.CloudAccessKey = encAccessKey
+	settings.CloudSecretKey = encSecretKey
+	settings.GDriveAccessToken = nil
+	settings.GDriveRefreshToken = nil
+	settings.GDriveClientID = ""
+
+	if err := a.db.SaveSettings(settings); err != nil {
+		return fmt.Errorf("save settings: %w", err)
+	}
+
+	mgr, err := a.createSyncManager(provider)
+	if err != nil {
+		return fmt.Errorf("init sync manager: %w", err)
+	}
+
+	if a.syncManager != nil {
+		a.syncManager.Stop()
+	}
+	a.syncManager = mgr
+
+	return mgr.SyncNow()
+}
+
+func (a *App) ConnectGoogleDrive() error {
+	port, err := randomPort()
+	if err != nil {
+		return fmt.Errorf("find port: %w", err)
+	}
+
+	clientID := "YOUR_GOOGLE_CLIENT_ID"
+	redirectURI := fmt.Sprintf("http://localhost:%d/callback", port)
+
+	codeVerifier, codeChallenge := generatePKCE()
+
+	authURL := fmt.Sprintf(
+		"https://accounts.google.com/o/oauth2/v2/auth?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&code_challenge=%s&code_challenge_method=S256&access_type=offline&prompt=consent",
+		url.QueryEscape(clientID),
+		url.QueryEscape(redirectURI),
+		url.QueryEscape("https://www.googleapis.com/auth/drive.file"),
+		url.QueryEscape(codeChallenge),
+	)
+
+	resultCh := make(chan gdriveAuthResult, 1)
+	mux := http.NewServeMux()
+	server := &http.Server{Handler: mux}
+
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		return fmt.Errorf("start gdrive callback server: %w", err)
+	}
+
+	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
+		code := r.URL.Query().Get("code")
+		if code == "" {
+			http.Error(w, "missing authorization code", http.StatusBadRequest)
+			resultCh <- gdriveAuthResult{err: errors.New("no authorization code from Google")}
+			return
+		}
+
+		tokens, exchangeErr := exchangeGoogleCode(r.Context(), clientID, code, redirectURI, codeVerifier)
+		if exchangeErr != nil {
+			http.Error(w, "token exchange failed", http.StatusInternalServerError)
+			resultCh <- gdriveAuthResult{err: exchangeErr}
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, "<html><body><h2>Google Drive connected!</h2><p>You can close this tab.</p></body></html>")
+		resultCh <- gdriveAuthResult{tokens: tokens}
+	})
+
+	go func() {
+		if serveErr := server.Serve(listener); serveErr != nil && serveErr != http.ErrServerClosed {
+			resultCh <- gdriveAuthResult{err: fmt.Errorf("gdrive callback server: %w", serveErr)}
+		}
+	}()
+
+	wailsRuntime.BrowserOpenURL(a.ctx, authURL)
+
+	var result gdriveAuthResult
+	select {
+	case result = <-resultCh:
+		_ = server.Close()
+	case <-time.After(2 * time.Minute):
+		_ = server.Close()
+		return errors.New("google drive authorization timed out after 2 minutes")
+	}
+
+	if result.err != nil {
+		return result.err
+	}
+
+	encKey := sha256.Sum256([]byte("coachlm-encryption-key"))
+
+	encAccessToken, err := strava.Encrypt([]byte(result.tokens.AccessToken), encKey[:])
+	if err != nil {
+		return fmt.Errorf("encrypt gdrive access token: %w", err)
+	}
+	encRefreshToken, err := strava.Encrypt([]byte(result.tokens.RefreshToken), encKey[:])
+	if err != nil {
+		return fmt.Errorf("encrypt gdrive refresh token: %w", err)
+	}
+
+	settings, err := a.db.GetSettings()
+	if err != nil {
+		return fmt.Errorf("get settings: %w", err)
+	}
+	if settings == nil {
+		return errors.New("settings not initialized")
+	}
+
+	settings.CloudProvider = "gdrive"
+	settings.CloudEndpoint = ""
+	settings.CloudBucket = ""
+	settings.CloudAccessKey = nil
+	settings.CloudSecretKey = nil
+	settings.GDriveAccessToken = encAccessToken
+	settings.GDriveRefreshToken = encRefreshToken
+	settings.GDriveTokenExpiry = result.tokens.Expiry
+	settings.GDriveClientID = clientID
+
+	if err := a.db.SaveSettings(settings); err != nil {
+		return fmt.Errorf("save settings: %w", err)
+	}
+
+	provider, err := cloudsync.NewGDrive(cloudsync.GDriveConfig{
+		AccessToken: result.tokens.AccessToken,
+		ClientID:    clientID,
+	})
+	if err != nil {
+		return fmt.Errorf("create gdrive provider: %w", err)
+	}
+
+	mgr, err := a.createSyncManager(provider)
+	if err != nil {
+		return fmt.Errorf("init sync manager: %w", err)
+	}
+
+	if a.syncManager != nil {
+		a.syncManager.Stop()
+	}
+	a.syncManager = mgr
+
+	return mgr.SyncNow()
+}
+
+func (a *App) DisconnectCloud() error {
+	if a.syncManager != nil {
+		a.syncManager.Stop()
+		a.syncManager = nil
+	}
+
+	settings, err := a.db.GetSettings()
+	if err != nil {
+		return fmt.Errorf("get settings: %w", err)
+	}
+	if settings == nil {
+		return nil
+	}
+
+	settings.CloudProvider = ""
+	settings.CloudEndpoint = ""
+	settings.CloudBucket = ""
+	settings.CloudAccessKey = nil
+	settings.CloudSecretKey = nil
+	settings.GDriveAccessToken = nil
+	settings.GDriveRefreshToken = nil
+	settings.GDriveClientID = ""
+
+	if err := a.db.SaveSettings(settings); err != nil {
+		return fmt.Errorf("save settings: %w", err)
+	}
+
+	return a.db.DeleteCloudSyncState()
+}
+
+func (a *App) SyncNow() error {
+	if a.syncManager == nil {
+		return errors.New("cloud sync is not enabled")
+	}
+	return a.syncManager.SyncNow()
+}
+
+func (a *App) GetSyncStatus() cloudsync.SyncStatus {
+	if a.syncManager == nil {
+		return cloudsync.SyncStatus{Enabled: false}
+	}
+	return a.syncManager.GetStatus()
+}
+
+func (a *App) ExportChatSessions() ([]byte, error) {
+	return exportimport.ExportChatData(a.db)
+}
+
+func (a *App) ImportChatSessions(data []byte, replaceAll bool) error {
+	err := exportimport.ImportChatData(a.db, data, replaceAll)
+	if err == nil && a.syncManager != nil {
+		a.syncManager.TriggerChatSync()
+	}
+	return err
+}
+
+func (a *App) createSyncManager(provider cloudsync.CloudProvider) (*cloudsync.Manager, error) {
+	return cloudsync.NewManager(cloudsync.ManagerConfig{
+		Provider: provider,
+		ExportContext: func() ([]byte, error) {
+			return exportimport.ExportData(a.db)
+		},
+		ImportContext: func(data []byte, replaceAll bool) error {
+			return exportimport.ImportData(a.db, data, replaceAll)
+		},
+		ExportChat: func() ([]byte, error) {
+			return exportimport.ExportChatData(a.db)
+		},
+		ImportChat: func(data []byte, replaceAll bool) error {
+			return exportimport.ImportChatData(a.db, data, replaceAll)
+		},
+		StateStore: cloudsync.NewStateAdapter(a.db),
+	})
+}
+
+func (a *App) initSyncManagerFromSettings() error {
+	settings, err := a.db.GetSettings()
+	if err != nil || settings == nil || settings.CloudProvider == "" {
+		return nil
+	}
+
+	encKey := sha256.Sum256([]byte("coachlm-encryption-key"))
+
+	var provider cloudsync.CloudProvider
+	switch settings.CloudProvider {
+	case "s3":
+		accessKey, err := strava.Decrypt(settings.CloudAccessKey, encKey[:])
+		if err != nil {
+			return fmt.Errorf("decrypt s3 access key: %w", err)
+		}
+		secretKey, err := strava.Decrypt(settings.CloudSecretKey, encKey[:])
+		if err != nil {
+			return fmt.Errorf("decrypt s3 secret key: %w", err)
+		}
+		provider, err = cloudsync.NewS3(cloudsync.S3Config{
+			Endpoint:  settings.CloudEndpoint,
+			Bucket:    settings.CloudBucket,
+			AccessKey: string(accessKey),
+			SecretKey: string(secretKey),
+		})
+		if err != nil {
+			return fmt.Errorf("create s3 provider: %w", err)
+		}
+	case "gdrive":
+		accessToken, err := strava.Decrypt(settings.GDriveAccessToken, encKey[:])
+		if err != nil {
+			return fmt.Errorf("decrypt gdrive access token: %w", err)
+		}
+		provider, err = cloudsync.NewGDrive(cloudsync.GDriveConfig{
+			AccessToken: string(accessToken),
+			ClientID:    settings.GDriveClientID,
+		})
+		if err != nil {
+			return fmt.Errorf("create gdrive provider: %w", err)
+		}
+	default:
+		return nil
+	}
+
+	mgr, err := a.createSyncManager(provider)
+	if err != nil {
+		return fmt.Errorf("init sync manager: %w", err)
+	}
+	a.syncManager = mgr
+	return nil
+}
+
+type gdriveAuthResult struct {
+	tokens *gdriveTokens
+	err    error
+}
+
+type gdriveTokens struct {
+	AccessToken  string
+	RefreshToken string
+	Expiry       time.Time
+}
+
+func exchangeGoogleCode(ctx context.Context, clientID, code, redirectURI, codeVerifier string) (*gdriveTokens, error) {
+	data := url.Values{
+		"client_id":     {clientID},
+		"code":          {code},
+		"redirect_uri":  {redirectURI},
+		"grant_type":    {"authorization_code"},
+		"code_verifier": {codeVerifier},
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://oauth2.googleapis.com/token", strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, fmt.Errorf("build token request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("token exchange: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("token exchange: status %d", resp.StatusCode)
+	}
+
+	var result struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+		ExpiresIn    int    `json:"expires_in"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("parse token response: %w", err)
+	}
+
+	return &gdriveTokens{
+		AccessToken:  result.AccessToken,
+		RefreshToken: result.RefreshToken,
+		Expiry:       time.Now().Add(time.Duration(result.ExpiresIn) * time.Second),
+	}, nil
+}
+
+func randomPort() (int, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(10000))
+	if err != nil {
+		return 0, err
+	}
+	return int(n.Int64()) + 49152, nil
+}
+
+func generatePKCE() (verifier, challenge string) {
+	b := make([]byte, 32)
+	_, _ = rand.Read(b)
+	verifier = strings.TrimRight(
+		strings.NewReplacer("+", "-", "/", "_").Replace(
+			fmt.Sprintf("%x", b),
+		), "=",
+	)
+	h := sha256.Sum256([]byte(verifier))
+	challenge = strings.TrimRight(
+		strings.NewReplacer("+", "-", "/", "_").Replace(
+			fmt.Sprintf("%x", h),
+		), "=",
+	)
+	return verifier, challenge
 }

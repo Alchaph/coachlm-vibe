@@ -79,6 +79,7 @@ window.__WAILS_MOCK_STATE__ = {
   activities: [...DEFAULT_ACTIVITIES],
   insights: [...DEFAULT_INSIGHTS],
   stats: { ...DEFAULT_STATS },
+  syncStatus: { enabled: false, provider: '', lastSyncedAt: '', lastChatSyncAt: '', syncing: false, lastError: '' },
   stravaConnected: false,
   ollamaModels: [],
   chatResponse: 'Great question! Based on your recent training data, I recommend a steady-state run at 5:10/km for 45 minutes tomorrow.',
@@ -148,6 +149,26 @@ window.go = {
       ImportContext: (filePath, replaceAll) => mockAsync(null),
 
       ImportFITFile: (filePath) => mockAsync(null),
+      
+      ConnectS3: (endpoint, bucket, accessKey, secretKey) => {
+        window.__WAILS_MOCK_STATE__.syncStatus.enabled = true
+        window.__WAILS_MOCK_STATE__.syncStatus.provider = 'S3'
+        return mockAsync(null)
+      },
+      ConnectGoogleDrive: () => {
+        window.__WAILS_MOCK_STATE__.syncStatus.enabled = true
+        window.__WAILS_MOCK_STATE__.syncStatus.provider = 'Google Drive'
+        return mockAsync(null)
+      },
+      DisconnectCloud: () => {
+        window.__WAILS_MOCK_STATE__.syncStatus.enabled = false
+        window.__WAILS_MOCK_STATE__.syncStatus.provider = ''
+        return mockAsync(null)
+      },
+      SyncNow: () => mockAsync(null),
+      GetSyncStatus: () => mockAsync({ ...window.__WAILS_MOCK_STATE__.syncStatus }),
+      ExportChatSessions: () => mockAsync(new Uint8Array()),
+      ImportChatSessions: (data, replaceAll) => mockAsync(null),
     },
   },
 }

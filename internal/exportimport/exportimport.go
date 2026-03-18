@@ -48,9 +48,9 @@ type ImportEnvelope struct {
 	SettingsMeta      SettingsMeta            `json:"settings_meta"`
 }
 
-func Export(db *storage.DB, filePath string) error {
+func ExportData(db *storage.DB) ([]byte, error) {
 	if db == nil {
-		return errors.New("database is nil")
+		return nil, errors.New("database is nil")
 	}
 
 	profile, _ := db.GetProfile()
@@ -93,7 +93,16 @@ func Export(db *storage.DB, filePath string) error {
 
 	data, err := json.MarshalIndent(envelope, "", "  ")
 	if err != nil {
-		return fmt.Errorf("marshal export: %w", err)
+		return nil, fmt.Errorf("marshal export: %w", err)
+	}
+
+	return data, nil
+}
+
+func Export(db *storage.DB, filePath string) error {
+	data, err := ExportData(db)
+	if err != nil {
+		return err
 	}
 
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
@@ -111,6 +120,14 @@ func Import(db *storage.DB, filePath string, replaceAll bool) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("read import file: %w", err)
+	}
+
+	return ImportData(db, data, replaceAll)
+}
+
+func ImportData(db *storage.DB, data []byte, replaceAll bool) error {
+	if db == nil {
+		return errors.New("database is nil")
 	}
 
 	var envelope ImportEnvelope

@@ -9,8 +9,14 @@
     GetOllamaModels,
     ExportContext,
     ImportContext,
-    GetStravaCredentialsAvailable
+    GetStravaCredentialsAvailable,
+    ConnectS3,
+    ConnectGoogleDrive,
+    DisconnectCloud,
+    SyncNow,
+    GetSyncStatus
   } from '../wailsjs/go/main/App.js'
+  import { cloudsync } from '../wailsjs/go/models'
 
   // Wails Dialog functions are available on window.runtime
   const runtime: any = (window as any).runtime
@@ -32,6 +38,15 @@
   let ollamaModels: string[] = []
   let fetchingModels = false
   let modelFetchError = ''
+
+  let syncStatus: cloudsync.SyncStatus | null = null
+  let cloudProvider = 'S3-Compatible'
+  let s3Endpoint = ''
+  let s3Bucket = ''
+  let s3AccessKey = ''
+  let s3SecretKey = ''
+  let connectingCloud = false
+  let syncingCloud = false
 
   async function fetchOllamaModels() {
     fetchingModels = true
@@ -98,10 +113,11 @@
 
   async function loadSettings() {
     try {
-      const [settings, status, credsAvailable] = await Promise.all([
+      const [settings, status, credsAvailable, sync] = await Promise.all([
         GetSettingsData(),
         GetStravaAuthStatus(),
-        GetStravaCredentialsAvailable()
+        GetStravaCredentialsAvailable(),
+        GetSyncStatus()
       ])
 
       if (settings) {
@@ -116,6 +132,7 @@
       }
 
       stravaCredentialsAvailable = !!credsAvailable
+      syncStatus = sync
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to load settings', 'error')
     }
@@ -123,10 +140,11 @@
 
   onMount(async () => {
     try {
-      const [settings, status, credsAvailable] = await Promise.all([
+      const [settings, status, credsAvailable, sync] = await Promise.all([
         GetSettingsData(),
         GetStravaAuthStatus(),
-        GetStravaCredentialsAvailable()
+        GetStravaCredentialsAvailable(),
+        GetSyncStatus()
       ])
 
       if (settings) {
@@ -141,6 +159,7 @@
       }
 
       stravaCredentialsAvailable = !!credsAvailable
+      syncStatus = sync
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to load settings', 'error')
     } finally {
@@ -193,6 +212,60 @@
       showFeedback('Strava disconnected', 'success')
     } catch (e: any) {
       showFeedback(e?.message || 'Failed to disconnect', 'error')
+    }
+  }
+
+  async function connectS3() {
+    if (!s3Endpoint || !s3Bucket || !s3AccessKey || !s3SecretKey) {
+      showFeedback('Please fill in all S3 fields', 'error')
+      return
+    }
+    connectingCloud = true
+    try {
+      await ConnectS3(s3Endpoint, s3Bucket, s3AccessKey, s3SecretKey)
+      syncStatus = await GetSyncStatus()
+      showFeedback('Connected to S3 successfully', 'success')
+    } catch (e: any) {
+      showFeedback(e?.message || 'Failed to connect to S3', 'error')
+    } finally {
+      connectingCloud = false
+    }
+  }
+
+  async function connectGoogleDrive() {
+    connectingCloud = true
+    try {
+      await ConnectGoogleDrive()
+      syncStatus = await GetSyncStatus()
+      showFeedback('Connected to Google Drive successfully', 'success')
+    } catch (e: any) {
+      showFeedback(e?.message || 'Failed to connect to Google Drive', 'error')
+    } finally {
+      connectingCloud = false
+    }
+  }
+
+  async function disconnectCloud() {
+    if (!confirm('Disconnect Cloud Sync? Your local data will remain.')) return
+    try {
+      await DisconnectCloud()
+      syncStatus = await GetSyncStatus()
+      showFeedback('Cloud Sync disconnected', 'success')
+    } catch (e: any) {
+      showFeedback(e?.message || 'Failed to disconnect Cloud Sync', 'error')
+    }
+  }
+
+  async function syncNow() {
+    syncingCloud = true
+    try {
+      await SyncNow()
+      syncStatus = await GetSyncStatus()
+      showFeedback('Sync completed successfully', 'success')
+    } catch (e: any) {
+      showFeedback(e?.message || 'Failed to sync', 'error')
+    } finally {
+      syncingCloud = false
     }
   }
 </script>
@@ -301,6 +374,66 @@
         <button class="btn btn-secondary" on:click={exportContext}>Export Context</button>
         <button class="btn btn-secondary" on:click={importContext}>Import Context</button>
       </div>
+    </section>
+
+    <section>
+      <h2>Cloud Sync</h2>
+      
+      <div class="status-row">
+        <span class="status-badge" class:connected={syncStatus?.enabled}>
+          {syncStatus?.enabled ? 'Connected' : 'Not Connected'}
+        </span>
+      </div>
+
+      {#if syncStatus?.enabled}
+        <div class="cloud-connected-info">
+          <p><strong>Provider:</strong> {syncStatus.provider}</p>
+          <p><strong>Last Synced:</strong> {syncStatus.lastSyncedAt ? new Date(syncStatus.lastSyncedAt).toLocaleString() : 'Never'}</p>
+          {#if syncStatus.lastError}
+            <p class="cloud-error"><strong>Error:</strong> {syncStatus.lastError}</p>
+          {/if}
+        </div>
+        <div class="cloud-actions">
+          <button class="btn btn-primary" on:click={syncNow} disabled={syncingCloud || syncStatus.syncing}>
+            {syncingCloud || syncStatus.syncing ? 'Syncing...' : 'Sync Now'}
+          </button>
+          <button class="btn btn-danger" on:click={disconnectCloud}>Disconnect</button>
+        </div>
+      {:else}
+        <label class="field-label" for="cloud-provider">Provider</label>
+        <select id="cloud-provider" bind:value={cloudProvider}>
+          <option value="S3-Compatible">S3-Compatible</option>
+          <option value="Google Drive">Google Drive</option>
+        </select>
+
+        {#if cloudProvider === 'S3-Compatible'}
+          <div class="s3-fields">
+            <label class="field-label" for="s3-endpoint">Endpoint URL</label>
+            <input id="s3-endpoint" type="text" bind:value={s3Endpoint} placeholder="https://s3.us-east-1.amazonaws.com" />
+            
+            <label class="field-label" for="s3-bucket">Bucket Name</label>
+            <input id="s3-bucket" type="text" bind:value={s3Bucket} placeholder="my-coachlm-bucket" />
+            
+            <label class="field-label" for="s3-access-key">Access Key</label>
+            <input id="s3-access-key" type="text" bind:value={s3AccessKey} placeholder="AKIA..." />
+            
+            <label class="field-label" for="s3-secret-key">Secret Key</label>
+            <input id="s3-secret-key" type="password" bind:value={s3SecretKey} placeholder="Secret Key" />
+            
+            <div class="cloud-actions">
+              <button class="btn btn-primary" on:click={connectS3} disabled={connectingCloud}>
+                {connectingCloud ? 'Connecting...' : 'Connect S3'}
+              </button>
+            </div>
+          </div>
+        {:else if cloudProvider === 'Google Drive'}
+          <div class="cloud-actions">
+            <button class="btn btn-primary" on:click={connectGoogleDrive} disabled={connectingCloud}>
+              {connectingCloud ? 'Connecting...' : 'Connect Google Drive'}
+            </button>
+          </div>
+        {/if}
+      {/if}
     </section>
 
     <div class="save-area">
@@ -611,5 +744,29 @@
     background: rgba(59, 130, 246, 0.2);
     border-color: #3b82f6;
     color: #3b82f6;
+  }
+
+  .cloud-connected-info {
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: #e2e8f0;
+  }
+
+  .cloud-connected-info p {
+    margin: 4px 0;
+  }
+
+  .cloud-error {
+    color: #f87171;
+  }
+
+  .cloud-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 12px;
+  }
+
+  .s3-fields {
+    margin-top: 12px;
   }
 </style>

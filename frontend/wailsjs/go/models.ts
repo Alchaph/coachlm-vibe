@@ -1,3 +1,30 @@
+export namespace cloudsync {
+	
+	export class SyncStatus {
+	    enabled: boolean;
+	    provider: string;
+	    lastSyncedAt: string;
+	    lastChatSyncAt: string;
+	    syncing: boolean;
+	    lastError: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SyncStatus(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.enabled = source["enabled"];
+	        this.provider = source["provider"];
+	        this.lastSyncedAt = source["lastSyncedAt"];
+	        this.lastChatSyncAt = source["lastChatSyncAt"];
+	        this.syncing = source["syncing"];
+	        this.lastError = source["lastError"];
+	    }
+	}
+
+}
+
 export namespace main {
 	
 	export class ActivityRecord {

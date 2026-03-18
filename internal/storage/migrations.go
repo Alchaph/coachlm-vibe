@@ -97,6 +97,26 @@ var migrations = []string{
 	`ALTER TABLE settings ADD COLUMN custom_system_prompt TEXT NOT NULL DEFAULT ''`,
 
 	`UPDATE settings SET active_llm = 'gemini' WHERE active_llm IN ('claude', 'openai', 'free')`,
+
+	// Cloud sync (S21)
+	`CREATE TABLE IF NOT EXISTS cloud_sync_state (
+		id INTEGER PRIMARY KEY CHECK (id = 1),
+		provider TEXT NOT NULL DEFAULT '',
+		last_synced_at DATETIME,
+		last_chat_sync_at DATETIME,
+		remote_etag TEXT NOT NULL DEFAULT '',
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+	)`,
+	`ALTER TABLE settings ADD COLUMN cloud_provider TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE settings ADD COLUMN cloud_endpoint TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE settings ADD COLUMN cloud_bucket TEXT NOT NULL DEFAULT ''`,
+	`ALTER TABLE settings ADD COLUMN cloud_access_key BLOB`,
+	`ALTER TABLE settings ADD COLUMN cloud_secret_key BLOB`,
+	`ALTER TABLE settings ADD COLUMN gdrive_access_token BLOB`,
+	`ALTER TABLE settings ADD COLUMN gdrive_refresh_token BLOB`,
+	`ALTER TABLE settings ADD COLUMN gdrive_token_expiry DATETIME`,
+	`ALTER TABLE settings ADD COLUMN gdrive_client_id TEXT NOT NULL DEFAULT ''`,
 }
 
 func (db *DB) migrate() error {
