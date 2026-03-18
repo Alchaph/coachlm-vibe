@@ -20,7 +20,11 @@ Head to the [Releases page](https://github.com/Alchaph/coachlm-vibe/releases/lat
 
 **Windows**: Just double-click the `.exe` file
 
-**macOS**: Unzip, then drag `CoachLM.app` to your Applications folder and open it
+**macOS**: Unzip, then drag `coachlm.app` to your Applications folder and open it
+
+```bash
+xattr -d com.apple.quarantine /Applications/coachlm.app
+```
 
 **Linux**: 
 ```bash
